@@ -111,14 +111,14 @@ func (s *APIServer) updateGaugeMetric() http.HandlerFunc {
 }
 
 func parseMetric(url string) (metric models.Metric, err error) {
-	fullUrlFragmetns := strings.Split(url, "/")
+	fullURLFragments := strings.Split(url, "/")
 
-	if len(fullUrlFragmetns) != 5 {
+	if len(fullURLFragments) != 5 {
 		err = &customerrors.ParseURLError{Url: url}
 		return
 	}
 
-	values := fullUrlFragmetns[2:]
+	values := fullURLFragments[2:]
 
 	return models.Metric{
 		Name:  values[1],
