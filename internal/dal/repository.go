@@ -21,7 +21,7 @@ func New() *repository {
 
 func (r *repository) GetCounterMetric(name string) (cm models.CounterMetric, err error) {
 	metric, ok := r.counterMetrics[name]
-	if ok != true {
+	if !ok {
 		err = customerrors.ErrNotFound
 		return
 	}
@@ -34,7 +34,7 @@ func (r *repository) CreateCounterMetric(name string, mType string, value int64)
 
 func (r *repository) UpdateCounterMetric(name string, value int64) error {
 	metric, ok := r.counterMetrics[name]
-	if ok != true {
+	if !ok {
 		return customerrors.ErrNotFound
 	}
 	metric.Value = value
@@ -43,7 +43,7 @@ func (r *repository) UpdateCounterMetric(name string, value int64) error {
 
 func (r *repository) GetGaugeMetric(name string) (cm models.GaugeMetric, err error) {
 	metric, ok := r.gaugeMetrics[name]
-	if ok != true {
+	if !ok {
 		err = customerrors.ErrNotFound
 		return
 	}
@@ -56,7 +56,7 @@ func (r *repository) CreateGaugeMetric(name string, mType string, value float64)
 
 func (r *repository) UpdateGaugeMetric(name string, value float64) error {
 	metric, ok := r.gaugeMetrics[name]
-	if ok != true {
+	if !ok {
 		return customerrors.ErrNotFound
 	}
 	metric.Value = value
