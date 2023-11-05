@@ -1,4 +1,4 @@
-package custom_errors
+package customerrors
 
 import (
 	"errors"
@@ -7,10 +7,10 @@ import (
 
 var ErrNotFound = errors.New("not found")
 
-type ParseUrlError struct {
+type ParseURLError struct {
 	Url string
 }
 
-func (e ParseUrlError) Error() string {
+func (e ParseURLError) Error() string {
 	return fmt.Sprintf("bad request url: %s", e.Url)
 }

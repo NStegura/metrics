@@ -4,7 +4,7 @@ import (
 	"errors"
 	"github.com/NStegura/metrics/internal/app/metricsapi/models"
 	blModels "github.com/NStegura/metrics/internal/bll/models"
-	"github.com/NStegura/metrics/internal/custom_errors"
+	"github.com/NStegura/metrics/internal/customerrors"
 	"github.com/sirupsen/logrus"
 	"net/http"
 	"strings"
@@ -58,7 +58,7 @@ func (s *APIServer) updateCounterMetric() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
 			m, err := parseMetric(r.URL.Path)
-			if errors.As(err, &custom_errors.ParseUrlError{Url: r.URL.Path}) {
+			if errors.As(err, &customerrors.ParseURLError{Url: r.URL.Path}) {
 				w.WriteHeader(http.StatusNotFound)
 				return
 			}
@@ -86,7 +86,7 @@ func (s *APIServer) updateGaugeMetric() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
 			m, err := parseMetric(r.URL.Path)
-			if errors.As(err, &custom_errors.ParseUrlError{Url: r.URL.Path}) {
+			if errors.As(err, &customerrors.ParseURLError{Url: r.URL.Path}) {
 				w.WriteHeader(http.StatusNotFound)
 				return
 			}
@@ -114,7 +114,7 @@ func parseMetric(url string) (metric models.Metric, err error) {
 	fullUrlFragmetns := strings.Split(url, "/")
 
 	if len(fullUrlFragmetns) != 5 {
-		err = &custom_errors.ParseUrlError{Url: url}
+		err = &customerrors.ParseURLError{Url: url}
 		return
 	}
 
