@@ -8,9 +8,9 @@ import (
 var ErrNotFound = errors.New("not found")
 
 type ParseURLError struct {
-	Url string
+	URL string
 }
 
 func (e ParseURLError) Error() string {
-	return fmt.Sprintf("bad request url: %s", e.Url)
+	return fmt.Sprintf("bad request url: %s", e.URL)
 }

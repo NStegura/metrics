@@ -114,7 +114,7 @@ func parseMetric(url string) (metric models.Metric, err error) {
 	fullURLFragments := strings.Split(url, "/")
 
 	if len(fullURLFragments) != 5 {
-		err = &customerrors.ParseURLError{Url: url}
+		err = &customerrors.ParseURLError{URL: url}
 		return
 	}
 
