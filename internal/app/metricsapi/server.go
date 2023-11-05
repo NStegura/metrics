@@ -49,8 +49,8 @@ func (s *APIServer) configureLogger() error {
 func (s *APIServer) configRouter() {
 	s.router.HandleFunc(`/update/gauge/`, s.updateGaugeMetric())
 	s.router.HandleFunc(`/update/counter/`, s.updateCounterMetric())
-	s.router.HandleFunc(`/update`, func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusNotFound)
+	s.router.HandleFunc(`/update/`, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
 	})
 }
 
@@ -59,7 +59,11 @@ func (s *APIServer) updateCounterMetric() http.HandlerFunc {
 		if r.Method == http.MethodPost {
 			m, err := parseMetric(r.URL.Path)
 			if errors.As(err, &custom_errors.ParseUrlError{Url: r.URL.Path}) {
-				w.WriteHeader(http.StatusBadRequest)
+				w.WriteHeader(http.StatusNotFound)
+				return
+			}
+			if m.Value == "" {
+				w.WriteHeader(http.StatusNotFound)
 				return
 			}
 			cm, err := models.CastToCounter(m)
@@ -67,7 +71,7 @@ func (s *APIServer) updateCounterMetric() http.HandlerFunc {
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
-			//s.logger.Info(cm) // debug
+			s.logger.Info(cm) // debug
 			err = s.bll.UpdateCounterMetric(blModels.CounterMetric(cm))
 			if err != nil {
 				w.WriteHeader(http.StatusUnprocessableEntity)
@@ -83,16 +87,19 @@ func (s *APIServer) updateGaugeMetric() http.HandlerFunc {
 		if r.Method == http.MethodPost {
 			m, err := parseMetric(r.URL.Path)
 			if errors.As(err, &custom_errors.ParseUrlError{Url: r.URL.Path}) {
-				w.WriteHeader(http.StatusBadRequest)
+				w.WriteHeader(http.StatusNotFound)
 				return
 			}
-			s.logger.Info(m)
+			if m.Value == "" {
+				w.WriteHeader(http.StatusNotFound)
+				return
+			}
 			gm, err := models.CastToGauge(m)
 			if err != nil {
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
-			//s.logger.Info(gm) // debug
+			s.logger.Info(gm) // debug
 			err = s.bll.UpdateGaugeMetric(blModels.GaugeMetric(gm))
 			if err != nil {
 				w.WriteHeader(http.StatusUnprocessableEntity)
@@ -103,11 +110,12 @@ func (s *APIServer) updateGaugeMetric() http.HandlerFunc {
 	}
 }
 
-func parseMetric(url string) (models.Metric, error) {
+func parseMetric(url string) (metric models.Metric, err error) {
 	fullUrlFragmetns := strings.Split(url, "/")
 
 	if len(fullUrlFragmetns) != 5 {
-		return models.Metric{}, &custom_errors.ParseUrlError{Url: url}
+		err = &custom_errors.ParseUrlError{Url: url}
+		return
 	}
 
 	values := fullUrlFragmetns[2:]
