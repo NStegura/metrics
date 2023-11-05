@@ -58,7 +58,7 @@ func (s *APIServer) updateCounterMetric() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
 			m, err := parseMetric(r.URL.Path)
-			if errors.As(err, &customerrors.ParseURLError{Url: r.URL.Path}) {
+			if errors.As(err, &customerrors.ParseURLError{URL: r.URL.Path}) {
 				w.WriteHeader(http.StatusNotFound)
 				return
 			}
@@ -86,7 +86,7 @@ func (s *APIServer) updateGaugeMetric() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
 			m, err := parseMetric(r.URL.Path)
-			if errors.As(err, &customerrors.ParseURLError{Url: r.URL.Path}) {
+			if errors.As(err, &customerrors.ParseURLError{URL: r.URL.Path}) {
 				w.WriteHeader(http.StatusNotFound)
 				return
 			}
