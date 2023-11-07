@@ -2,7 +2,7 @@ package metric
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 )
@@ -20,7 +20,7 @@ func New() *client {
 }
 
 type RequestError struct {
-	Url        *url.URL
+	URL        *url.URL
 	StatusCode int
 	Body       []byte
 }
@@ -28,12 +28,12 @@ type RequestError struct {
 func (e RequestError) Error() string {
 	return fmt.Sprintf(
 		"Metric request error: url=%s, code=%v, body=%s",
-		e.Url, e.StatusCode, e.Body,
+		e.URL, e.StatusCode, e.Body,
 	)
 }
 
 func NewRequestError(response *http.Response) error {
-	body, err := ioutil.ReadAll(response.Body)
+	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		return err
 	}

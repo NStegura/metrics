@@ -81,7 +81,6 @@ func (s *APIServer) updateCounterMetric() http.HandlerFunc {
 			w.WriteHeader(http.StatusUnprocessableEntity)
 			return
 		}
-		return
 	}
 }
 
@@ -112,7 +111,6 @@ func (s *APIServer) updateGaugeMetric() http.HandlerFunc {
 			w.WriteHeader(http.StatusUnprocessableEntity)
 			return
 		}
-		return
 	}
 }
 
