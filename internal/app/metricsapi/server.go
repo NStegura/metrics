@@ -145,7 +145,7 @@ func (s *APIServer) getGaugeMetric() http.HandlerFunc {
 			return
 		}
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(fmt.Sprintf("%f", metric)))
+		w.Write([]byte(fmt.Sprintf("%v", metric)))
 	}
 }
 
