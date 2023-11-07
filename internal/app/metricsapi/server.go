@@ -49,9 +49,6 @@ func (s *APIServer) configureLogger() error {
 }
 
 func (s *APIServer) configRouter() {
-	//s.router.Get(`/`, func(w http.ResponseWriter, r *http.Request) {
-	//	w.WriteHeader(http.StatusBadRequest)
-	//})
 	s.router.Get(`/`, s.getAllMetrics())
 
 	s.router.Route(`/value`, func(r chi.Router) {
