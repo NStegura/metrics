@@ -6,7 +6,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"math/rand"
 	"runtime"
-	"sync"
 	"time"
 )
 
@@ -61,7 +60,6 @@ func New(config *Config) *Agent {
 func (ag *Agent) Start() error {
 	metricsCli := metric.New(ag.config.HTTPAddr)
 
-	var mu sync.Mutex
 	var metrics models.Metrics
 
 	go func() {
@@ -72,29 +70,25 @@ func (ag *Agent) Start() error {
 
 			stats := runtime.MemStats{}
 			runtime.ReadMemStats(&stats)
-			mu.Lock()
 			metrics = getMetricsFromStats(stats, counter)
-			mu.Unlock()
 		}
 	}()
 
 	for {
 		time.Sleep(time.Second * ag.config.ReportInterval)
-		mu.Lock()
 		for _, m := range metrics.GaugeMetrics {
 			err := metricsCli.UpdateGaugeMetric(string(m.Name), m.Value)
 			if err != nil {
-				return err
+				ag.logger.Error(err)
 			}
 		}
 		for _, m := range metrics.CounterMetrics {
 			err := metricsCli.UpdateCounterMetric(string(m.Name), m.Value)
 			ag.logger.Info(*m)
 			if err != nil {
-				return err
+				ag.logger.Error(err)
 			}
 		}
-		mu.Unlock()
 	}
 }
 
