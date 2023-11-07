@@ -59,7 +59,7 @@ func New(config *Config) *Agent {
 }
 
 func (ag *Agent) Start() error {
-	metricsCli := metric.New(ag.config.HttpAddr)
+	metricsCli := metric.New(ag.config.HTTPAddr)
 
 	var mu sync.Mutex
 	var metrics models.Metrics

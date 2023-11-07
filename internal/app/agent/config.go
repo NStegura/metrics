@@ -6,21 +6,21 @@ import (
 )
 
 type Config struct {
-	HttpAddr       string
+	HTTPAddr       string
 	ReportInterval time.Duration
 	PollInterval   time.Duration
 }
 
 func NewConfig() *Config {
 	return &Config{
-		HttpAddr:       ":8080",
+		HTTPAddr:       ":8080",
 		ReportInterval: 10,
 		PollInterval:   2,
 	}
 }
 
 func (c *Config) ParseFlags() {
-	flag.StringVar(&c.HttpAddr, "a", "localhost:8080", "address and port to run server")
+	flag.StringVar(&c.HTTPAddr, "a", "localhost:8080", "address and port to run server")
 	flag.DurationVar(
 		&c.ReportInterval,
 		"r",
