@@ -66,7 +66,7 @@ func (ag *Agent) Start() error {
 		var counter int64 = 0
 		for {
 			counter++
-			time.Sleep(time.Second * ag.config.PollInterval)
+			time.Sleep(time.Second * time.Duration(ag.config.PollInterval))
 
 			stats := runtime.MemStats{}
 			runtime.ReadMemStats(&stats)
@@ -75,7 +75,7 @@ func (ag *Agent) Start() error {
 	}()
 
 	for {
-		time.Sleep(time.Second * ag.config.ReportInterval)
+		time.Sleep(time.Second * time.Duration(ag.config.ReportInterval))
 		for _, m := range metrics.GaugeMetrics {
 			err := metricsCli.UpdateGaugeMetric(string(m.Name), m.Value)
 			if err != nil {

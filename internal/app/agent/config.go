@@ -2,13 +2,12 @@ package agent
 
 import (
 	"flag"
-	"time"
 )
 
 type Config struct {
 	HTTPAddr       string
-	ReportInterval time.Duration
-	PollInterval   time.Duration
+	ReportInterval int
+	PollInterval   int
 }
 
 func NewConfig() *Config {
@@ -21,13 +20,13 @@ func NewConfig() *Config {
 
 func (c *Config) ParseFlags() {
 	flag.StringVar(&c.HTTPAddr, "a", "localhost:8080", "address and port to run server")
-	flag.DurationVar(
+	flag.IntVar(
 		&c.ReportInterval,
 		"r",
 		10,
 		"frequency of sending metrics to the server",
 	)
-	flag.DurationVar(
+	flag.IntVar(
 		&c.PollInterval,
 		"p",
 		2,
