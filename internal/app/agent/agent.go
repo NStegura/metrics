@@ -1,11 +1,12 @@
 package agent
 
 import (
-	"fmt"
 	"github.com/NStegura/metrics/internal/app/agent/models"
 	"github.com/NStegura/metrics/internal/clients/metric"
+	"github.com/sirupsen/logrus"
 	"math/rand"
 	"runtime"
+	"sync"
 	"time"
 )
 
@@ -44,85 +45,92 @@ const (
 	Counter models.MetricType = "Counter"
 )
 
-type Agent struct{}
+type Agent struct {
+	config *Config
 
-func New() *Agent {
-	return &Agent{}
+	logger *logrus.Logger
+}
+
+func New(config *Config) *Agent {
+	return &Agent{
+		config: config,
+		logger: logrus.New(),
+	}
 }
 
 func (ag *Agent) Start() error {
-	//var ms models.Metrics
+	metricsCli := metric.New(ag.config.HttpAddr)
 
-	metricsCli := metric.New()
-	metrics := make(chan models.Metrics)
+	var mu sync.Mutex
+	var metrics models.Metrics
 
 	go func() {
 		var counter int64 = 0
 		for {
 			counter++
-			time.Sleep(time.Second * 2)
+			time.Sleep(time.Second * ag.config.PollInterval)
 
 			stats := runtime.MemStats{}
 			runtime.ReadMemStats(&stats)
-			m := getMetricsFromStats(stats, counter)
-			if a := counter % 5; a == 0 {
-				metrics <- m
-			}
+			mu.Lock()
+			metrics = getMetricsFromStats(stats, counter)
+			mu.Unlock()
 		}
 	}()
 
-	for m := range metrics {
-		for _, m := range m.GaugeMetrics {
+	for {
+		time.Sleep(time.Second * ag.config.ReportInterval)
+		mu.Lock()
+		for _, m := range metrics.GaugeMetrics {
 			err := metricsCli.UpdateGaugeMetric(string(m.Name), m.Value)
 			if err != nil {
 				return err
 			}
 		}
-		for _, m := range m.CounterMetrics {
+		for _, m := range metrics.CounterMetrics {
 			err := metricsCli.UpdateCounterMetric(string(m.Name), m.Value)
+			ag.logger.Info(*m)
 			if err != nil {
 				return err
 			}
 		}
-
-		fmt.Println(<-metrics)
+		mu.Unlock()
 	}
-	return nil
 }
 
 func getMetricsFromStats(stats runtime.MemStats, counter int64) models.Metrics {
-	gaugeMetrics := make(map[models.MetricName]models.GaugeMetric)
-	counterMetrics := make(map[models.MetricName]models.CounterMetric)
+	gaugeMetrics := make(map[models.MetricName]*models.GaugeMetric)
+	counterMetrics := make(map[models.MetricName]*models.CounterMetric)
 	metrics := models.Metrics{GaugeMetrics: gaugeMetrics, CounterMetrics: counterMetrics}
 
-	metrics.GaugeMetrics[Alloc] = models.GaugeMetric{Name: Alloc, Type: Gauge, Value: float64(stats.Alloc)}
-	metrics.GaugeMetrics[BuckHashSys] = models.GaugeMetric{Name: BuckHashSys, Type: Gauge, Value: float64(stats.BuckHashSys)}
-	metrics.GaugeMetrics[Frees] = models.GaugeMetric{Name: Frees, Type: Gauge, Value: float64(stats.Frees)}
-	metrics.GaugeMetrics[GCCPUFraction] = models.GaugeMetric{Name: GCCPUFraction, Type: Gauge, Value: float64(stats.GCCPUFraction)}
-	metrics.GaugeMetrics[GCSys] = models.GaugeMetric{Name: GCSys, Type: Gauge, Value: float64(stats.GCSys)}
-	metrics.GaugeMetrics[HeapAlloc] = models.GaugeMetric{Name: HeapAlloc, Type: Gauge, Value: float64(stats.HeapAlloc)}
-	metrics.GaugeMetrics[HeapIdle] = models.GaugeMetric{Name: HeapIdle, Type: Gauge, Value: float64(stats.HeapIdle)}
-	metrics.GaugeMetrics[HeapInuse] = models.GaugeMetric{Name: HeapInuse, Type: Gauge, Value: float64(stats.HeapInuse)}
-	metrics.GaugeMetrics[HeapObjects] = models.GaugeMetric{Name: HeapObjects, Type: Gauge, Value: float64(stats.HeapObjects)}
-	metrics.GaugeMetrics[HeapReleased] = models.GaugeMetric{Name: HeapReleased, Type: Gauge, Value: float64(stats.HeapReleased)}
-	metrics.GaugeMetrics[HeapSys] = models.GaugeMetric{Name: HeapSys, Type: Gauge, Value: float64(stats.HeapSys)}
-	metrics.GaugeMetrics[LastGC] = models.GaugeMetric{Name: LastGC, Type: Gauge, Value: float64(stats.LastGC)}
-	metrics.GaugeMetrics[Lookups] = models.GaugeMetric{Name: Lookups, Type: Gauge, Value: float64(stats.Lookups)}
-	metrics.GaugeMetrics[MCacheInuse] = models.GaugeMetric{Name: MCacheInuse, Type: Gauge, Value: float64(stats.MCacheInuse)}
-	metrics.GaugeMetrics[MCacheSys] = models.GaugeMetric{Name: MCacheSys, Type: Gauge, Value: float64(stats.MCacheSys)}
-	metrics.GaugeMetrics[MSpanInuse] = models.GaugeMetric{Name: MSpanInuse, Type: Gauge, Value: float64(stats.MSpanInuse)}
-	metrics.GaugeMetrics[MSpanSys] = models.GaugeMetric{Name: MSpanSys, Type: Gauge, Value: float64(stats.MSpanSys)}
-	metrics.GaugeMetrics[Mallocs] = models.GaugeMetric{Name: Mallocs, Type: Gauge, Value: float64(stats.Mallocs)}
-	metrics.GaugeMetrics[NextGC] = models.GaugeMetric{Name: NextGC, Type: Gauge, Value: float64(stats.NextGC)}
-	metrics.GaugeMetrics[NumForcedGC] = models.GaugeMetric{Name: NumForcedGC, Type: Gauge, Value: float64(stats.NumForcedGC)}
-	metrics.GaugeMetrics[OtherSys] = models.GaugeMetric{Name: OtherSys, Type: Gauge, Value: float64(stats.OtherSys)}
-	metrics.GaugeMetrics[PauseTotalNs] = models.GaugeMetric{Name: PauseTotalNs, Type: Gauge, Value: float64(stats.PauseTotalNs)}
-	metrics.GaugeMetrics[StackInuse] = models.GaugeMetric{Name: StackInuse, Type: Gauge, Value: float64(stats.StackInuse)}
-	metrics.GaugeMetrics[StackSys] = models.GaugeMetric{Name: StackSys, Type: Gauge, Value: float64(stats.StackSys)}
-	metrics.GaugeMetrics[Sys] = models.GaugeMetric{Name: Sys, Type: Gauge, Value: float64(stats.Sys)}
-	metrics.GaugeMetrics[TotalAlloc] = models.GaugeMetric{Name: TotalAlloc, Type: Gauge, Value: float64(stats.TotalAlloc)}
+	metrics.GaugeMetrics[Alloc] = &models.GaugeMetric{Name: Alloc, Type: Gauge, Value: float64(stats.Alloc)}
+	metrics.GaugeMetrics[BuckHashSys] = &models.GaugeMetric{Name: BuckHashSys, Type: Gauge, Value: float64(stats.BuckHashSys)}
+	metrics.GaugeMetrics[Frees] = &models.GaugeMetric{Name: Frees, Type: Gauge, Value: float64(stats.Frees)}
+	metrics.GaugeMetrics[GCCPUFraction] = &models.GaugeMetric{Name: GCCPUFraction, Type: Gauge, Value: float64(stats.GCCPUFraction)}
+	metrics.GaugeMetrics[GCSys] = &models.GaugeMetric{Name: GCSys, Type: Gauge, Value: float64(stats.GCSys)}
+	metrics.GaugeMetrics[HeapAlloc] = &models.GaugeMetric{Name: HeapAlloc, Type: Gauge, Value: float64(stats.HeapAlloc)}
+	metrics.GaugeMetrics[HeapIdle] = &models.GaugeMetric{Name: HeapIdle, Type: Gauge, Value: float64(stats.HeapIdle)}
+	metrics.GaugeMetrics[HeapInuse] = &models.GaugeMetric{Name: HeapInuse, Type: Gauge, Value: float64(stats.HeapInuse)}
+	metrics.GaugeMetrics[HeapObjects] = &models.GaugeMetric{Name: HeapObjects, Type: Gauge, Value: float64(stats.HeapObjects)}
+	metrics.GaugeMetrics[HeapReleased] = &models.GaugeMetric{Name: HeapReleased, Type: Gauge, Value: float64(stats.HeapReleased)}
+	metrics.GaugeMetrics[HeapSys] = &models.GaugeMetric{Name: HeapSys, Type: Gauge, Value: float64(stats.HeapSys)}
+	metrics.GaugeMetrics[LastGC] = &models.GaugeMetric{Name: LastGC, Type: Gauge, Value: float64(stats.LastGC)}
+	metrics.GaugeMetrics[Lookups] = &models.GaugeMetric{Name: Lookups, Type: Gauge, Value: float64(stats.Lookups)}
+	metrics.GaugeMetrics[MCacheInuse] = &models.GaugeMetric{Name: MCacheInuse, Type: Gauge, Value: float64(stats.MCacheInuse)}
+	metrics.GaugeMetrics[MCacheSys] = &models.GaugeMetric{Name: MCacheSys, Type: Gauge, Value: float64(stats.MCacheSys)}
+	metrics.GaugeMetrics[MSpanInuse] = &models.GaugeMetric{Name: MSpanInuse, Type: Gauge, Value: float64(stats.MSpanInuse)}
+	metrics.GaugeMetrics[MSpanSys] = &models.GaugeMetric{Name: MSpanSys, Type: Gauge, Value: float64(stats.MSpanSys)}
+	metrics.GaugeMetrics[Mallocs] = &models.GaugeMetric{Name: Mallocs, Type: Gauge, Value: float64(stats.Mallocs)}
+	metrics.GaugeMetrics[NextGC] = &models.GaugeMetric{Name: NextGC, Type: Gauge, Value: float64(stats.NextGC)}
+	metrics.GaugeMetrics[NumForcedGC] = &models.GaugeMetric{Name: NumForcedGC, Type: Gauge, Value: float64(stats.NumForcedGC)}
+	metrics.GaugeMetrics[OtherSys] = &models.GaugeMetric{Name: OtherSys, Type: Gauge, Value: float64(stats.OtherSys)}
+	metrics.GaugeMetrics[PauseTotalNs] = &models.GaugeMetric{Name: PauseTotalNs, Type: Gauge, Value: float64(stats.PauseTotalNs)}
+	metrics.GaugeMetrics[StackInuse] = &models.GaugeMetric{Name: StackInuse, Type: Gauge, Value: float64(stats.StackInuse)}
+	metrics.GaugeMetrics[StackSys] = &models.GaugeMetric{Name: StackSys, Type: Gauge, Value: float64(stats.StackSys)}
+	metrics.GaugeMetrics[Sys] = &models.GaugeMetric{Name: Sys, Type: Gauge, Value: float64(stats.Sys)}
+	metrics.GaugeMetrics[TotalAlloc] = &models.GaugeMetric{Name: TotalAlloc, Type: Gauge, Value: float64(stats.TotalAlloc)}
 
-	metrics.GaugeMetrics[RandomValue] = models.GaugeMetric{Name: RandomValue, Type: Gauge, Value: rand.Float64()}
-	metrics.CounterMetrics[PollCount] = models.CounterMetric{Name: PollCount, Type: Counter, Value: counter}
+	metrics.GaugeMetrics[RandomValue] = &models.GaugeMetric{Name: RandomValue, Type: Gauge, Value: rand.Float64()}
+	metrics.CounterMetrics[PollCount] = &models.CounterMetric{Name: PollCount, Type: Counter, Value: counter}
 	return metrics
 }

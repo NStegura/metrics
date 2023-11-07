@@ -35,7 +35,7 @@ func (s *APIServer) Start() error {
 	}
 	s.configRouter()
 	s.logger.Info("starting APIServer")
-	return http.ListenAndServe(`:8080`, s.router)
+	return http.ListenAndServe(s.config.BindAddr, s.router)
 }
 
 func (s *APIServer) configureLogger() error {

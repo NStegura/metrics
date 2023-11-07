@@ -12,10 +12,10 @@ type client struct {
 	URL    string
 }
 
-func New() *client {
+func New(url string) *client {
 	return &client{
 		client: &http.Client{},
-		URL:    "http://localhost:8080",
+		URL:    fmt.Sprintf("http://%s", url),
 	}
 }
 

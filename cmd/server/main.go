@@ -8,8 +8,11 @@ import (
 )
 
 func runRest() {
+	config := metricsapi.NewConfig()
+	config.ParseFlags()
+
 	newServer := metricsapi.New(
-		metricsapi.NewConfig(),
+		config,
 		bll.New(
 			dal.New(),
 		),

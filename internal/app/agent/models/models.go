@@ -16,6 +16,6 @@ type CounterMetric struct {
 }
 
 type Metrics struct {
-	GaugeMetrics   map[MetricName]GaugeMetric
-	CounterMetrics map[MetricName]CounterMetric
+	GaugeMetrics   map[MetricName]*GaugeMetric
+	CounterMetrics map[MetricName]*CounterMetric
 }

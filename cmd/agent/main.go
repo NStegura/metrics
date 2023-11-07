@@ -6,7 +6,10 @@ import (
 )
 
 func main() {
-	ag := agent.New()
+	config := agent.NewConfig()
+	config.ParseFlags()
+
+	ag := agent.New(config)
 	err := ag.Start()
 	if err != nil {
 		log.Fatal(err)
