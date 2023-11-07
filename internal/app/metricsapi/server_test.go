@@ -58,7 +58,7 @@ func TestUpdateGaugeMetricHandler(t *testing.T) {
 			name:   "update unknown type metric",
 			url:    "/update/dsfds/SomeMetric/1.2",
 			want: want{
-				statusCode: http.StatusNotFound,
+				statusCode: http.StatusBadRequest,
 			},
 		},
 		{
@@ -72,6 +72,7 @@ func TestUpdateGaugeMetricHandler(t *testing.T) {
 	}
 	for _, v := range tests {
 		resp, _ := testRequest(t, ts, "POST", v.url)
+		defer resp.Body.Close()
 		assert.Equal(t, v.want.statusCode, resp.StatusCode)
 	}
 }

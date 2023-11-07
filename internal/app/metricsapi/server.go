@@ -49,6 +49,9 @@ func (s *APIServer) configureLogger() error {
 }
 
 func (s *APIServer) configRouter() {
+	//s.router.Get(`/`, func(w http.ResponseWriter, r *http.Request) {
+	//	w.WriteHeader(http.StatusBadRequest)
+	//})
 	s.router.Get(`/`, s.getAllMetrics())
 
 	s.router.Route(`/value`, func(r chi.Router) {
@@ -61,6 +64,9 @@ func (s *APIServer) configRouter() {
 	})
 
 	s.router.Route(`/update`, func(r chi.Router) {
+		r.Post(`/{mType}/{mName}/{mValue}`, func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusBadRequest)
+		})
 		r.Route(`/gauge`, func(r chi.Router) {
 			r.Post(`/{mName}/{mValue}`, s.updateGaugeMetric())
 		})
