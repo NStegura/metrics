@@ -56,57 +56,63 @@ func (s *APIServer) configRouter() {
 
 func (s *APIServer) updateCounterMetric() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodPost {
-			m, err := parseMetric(r.URL.Path)
-			if errors.As(err, &customerrors.ParseURLError{URL: r.URL.Path}) {
-				w.WriteHeader(http.StatusNotFound)
-				return
-			}
-			if m.Value == "" {
-				w.WriteHeader(http.StatusNotFound)
-				return
-			}
-			cm, err := models.CastToCounter(m)
-			if err != nil {
-				w.WriteHeader(http.StatusBadRequest)
-				return
-			}
-			s.logger.Info(cm) // debug
-			err = s.bll.UpdateCounterMetric(blModels.CounterMetric(cm))
-			if err != nil {
-				w.WriteHeader(http.StatusUnprocessableEntity)
-				return
-			}
+		if r.Method != http.MethodPost {
+			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
+
+		m, err := parseMetric(r.URL.Path)
+		if errors.As(err, &customerrors.ParseURLError{URL: r.URL.Path}) {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		if m.Value == "" {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		cm, err := models.CastToCounter(m)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		s.logger.Info(cm) // debug
+		err = s.bll.UpdateCounterMetric(blModels.CounterMetric(cm))
+		if err != nil {
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			return
+		}
+		return
 	}
 }
 
 func (s *APIServer) updateGaugeMetric() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodPost {
-			m, err := parseMetric(r.URL.Path)
-			if errors.As(err, &customerrors.ParseURLError{URL: r.URL.Path}) {
-				w.WriteHeader(http.StatusNotFound)
-				return
-			}
-			if m.Value == "" {
-				w.WriteHeader(http.StatusNotFound)
-				return
-			}
-			gm, err := models.CastToGauge(m)
-			if err != nil {
-				w.WriteHeader(http.StatusBadRequest)
-				return
-			}
-			s.logger.Info(gm) // debug
-			err = s.bll.UpdateGaugeMetric(blModels.GaugeMetric(gm))
-			if err != nil {
-				w.WriteHeader(http.StatusUnprocessableEntity)
-				return
-			}
+		if r.Method != http.MethodPost {
+			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
+
+		m, err := parseMetric(r.URL.Path)
+		if errors.As(err, &customerrors.ParseURLError{URL: r.URL.Path}) {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		if m.Value == "" {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		gm, err := models.CastToGauge(m)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		s.logger.Info(gm) // debug
+		err = s.bll.UpdateGaugeMetric(blModels.GaugeMetric(gm))
+		if err != nil {
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			return
+		}
+		return
 	}
 }
 
