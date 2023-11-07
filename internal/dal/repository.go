@@ -63,6 +63,18 @@ func (r *repository) UpdateGaugeMetric(name string, value float64) error {
 	return nil
 }
 
+func (r *repository) GetAllMetrics() ([]models.GaugeMetric, []models.CounterMetric) {
+	gaugeMetrics := make([]models.GaugeMetric, 0, 26)
+	counterMetrics := make([]models.CounterMetric, 0, 1)
+	for _, gMetric := range r.gaugeMetrics {
+		gaugeMetrics = append(gaugeMetrics, *gMetric)
+	}
+	for _, cMetric := range r.counterMetrics {
+		counterMetrics = append(counterMetrics, *cMetric)
+	}
+	return gaugeMetrics, counterMetrics
+}
+
 func (r *repository) LogRepo() {
 	r.logger.Info("gaugeMetrics: ---------------------------------")
 	for name, metric := range r.gaugeMetrics {

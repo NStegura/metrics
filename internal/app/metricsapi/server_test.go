@@ -4,15 +4,35 @@ import (
 	"github.com/NStegura/metrics/internal/bll"
 	"github.com/NStegura/metrics/internal/dal"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 )
 
+func testRequest(t *testing.T, ts *httptest.Server, method, path string) (*http.Response, string) {
+	req, err := http.NewRequest(method, ts.URL+path, nil)
+	require.NoError(t, err)
+
+	resp, err := ts.Client().Do(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+
+	return resp, string(respBody)
+}
+
 func TestUpdateGaugeMetricHandler(t *testing.T) {
 	repo := dal.New()
 	businessLayer := bll.New(repo)
 	server := New(NewConfig(), businessLayer)
+	server.configRouter()
+
+	ts := httptest.NewServer(server.router)
+	defer ts.Close()
 
 	type want struct {
 		contentType string
@@ -20,56 +40,38 @@ func TestUpdateGaugeMetricHandler(t *testing.T) {
 	}
 
 	tests := []struct {
-		method  string
-		name    string
-		request string
-		want    want
+		method string
+		name   string
+		url    string
+		want   want
 	}{
 		{
-			method:  http.MethodPost,
-			name:    "update gauge metric",
-			request: "/update/gauge/SomeMetric/1.2",
+			method: http.MethodPost,
+			name:   "update gauge metric",
+			url:    "/update/gauge/SomeMetric/1.2",
 			want: want{
 				statusCode: http.StatusOK,
 			},
 		},
 		{
-			method:  http.MethodPost,
-			name:    "update counter metric",
-			request: "/update/counter/SomeMetric/1.2",
+			method: http.MethodPost,
+			name:   "update unknown type metric",
+			url:    "/update/dsfds/SomeMetric/1.2",
 			want: want{
-				statusCode: http.StatusOK,
+				statusCode: http.StatusNotFound,
 			},
 		},
 		{
-			method:  http.MethodPost,
-			name:    "update unknown metric",
-			request: "/update/dsfds/SomeMetric/1.2",
-			want: want{
-				statusCode: http.StatusOK,
-			},
-		},
-		{
-			method:  http.MethodPost,
-			name:    "update",
-			request: "/update/",
+			method: http.MethodPost,
+			name:   "update",
+			url:    "/update/",
 			want: want{
 				statusCode: http.StatusNotFound,
 			},
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			request := httptest.NewRequest(tt.method, tt.request, nil)
-
-			w := httptest.NewRecorder()
-			h := server.updateGaugeMetric()
-			h(w, request)
-
-			result := w.Result()
-			defer result.Body.Close()
-
-			assert.Equal(t, tt.want.statusCode, result.StatusCode)
-		})
+	for _, v := range tests {
+		resp, _ := testRequest(t, ts, "POST", v.url)
+		assert.Equal(t, v.want.statusCode, resp.StatusCode)
 	}
 }
