@@ -1,6 +1,9 @@
 package metricsapi
 
-import "flag"
+import (
+	"flag"
+	"os"
+)
 
 type Config struct {
 	BindAddr string
@@ -17,4 +20,8 @@ func NewConfig() *Config {
 func (c *Config) ParseFlags() {
 	flag.StringVar(&c.BindAddr, "a", ":8080", "address and port to run server")
 	flag.Parse()
+
+	if envRunAddr, ok := os.LookupEnv("ADDRESS"); ok {
+		c.BindAddr = envRunAddr
+	}
 }

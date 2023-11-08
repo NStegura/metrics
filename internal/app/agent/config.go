@@ -2,6 +2,8 @@ package agent
 
 import (
 	"flag"
+	"os"
+	"strconv"
 )
 
 type Config struct {
@@ -33,4 +35,14 @@ func (c *Config) ParseFlags() {
 		"frequency of polling metrics from the package",
 	)
 	flag.Parse()
+
+	if envRunAddr, ok := os.LookupEnv("ADDRESS"); ok {
+		c.HTTPAddr = envRunAddr
+	}
+	if report, ok := os.LookupEnv("REPORT_INTERVAL"); ok {
+		c.ReportInterval, _ = strconv.Atoi(report)
+	}
+	if poll, ok := os.LookupEnv("POLL_INTERVAL"); ok {
+		c.PollInterval, _ = strconv.Atoi(poll)
+	}
 }
