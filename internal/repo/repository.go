@@ -13,10 +13,10 @@ type repository struct {
 	logger *logrus.Logger
 }
 
-func New() *repository {
+func New(logger *logrus.Logger) *repository {
 	gaugeMetrics := map[string]*models.GaugeMetric{}
 	counterMetrics := map[string]*models.CounterMetric{}
-	return &repository{gaugeMetrics, counterMetrics, logrus.New()}
+	return &repository{gaugeMetrics, counterMetrics, logger}
 }
 
 func (r *repository) GetCounterMetric(name string) (cm models.CounterMetric, err error) {

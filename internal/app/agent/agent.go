@@ -51,10 +51,10 @@ type Agent struct {
 	logger *logrus.Logger
 }
 
-func New(config *Config) *Agent {
+func New(config *Config, logger *logrus.Logger) *Agent {
 	return &Agent{
 		config: config,
-		logger: logrus.New(),
+		logger: logger,
 	}
 }
 

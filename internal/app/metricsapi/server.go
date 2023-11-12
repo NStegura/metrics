@@ -20,32 +20,19 @@ type APIServer struct {
 	logger *logrus.Logger
 }
 
-func New(config *Config, bll Bll) *APIServer {
+func New(config *Config, bll Bll, logger *logrus.Logger) *APIServer {
 	return &APIServer{
 		config: config,
 		bll:    bll,
 		router: chi.NewRouter(),
-		logger: logrus.New(),
+		logger: logger,
 	}
 }
 
 func (s *APIServer) Start() error {
-	if err := s.configureLogger(); err != nil {
-		return err
-	}
 	s.configRouter()
 	s.logger.Info("starting APIServer")
 	return http.ListenAndServe(s.config.BindAddr, s.router)
-}
-
-func (s *APIServer) configureLogger() error {
-	level, err := logrus.ParseLevel(s.config.LogLevel)
-	if err != nil {
-		return err
-	}
-
-	s.logger.SetLevel(level)
-	return nil
 }
 
 func (s *APIServer) configRouter() {

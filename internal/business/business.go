@@ -13,8 +13,8 @@ type bll struct {
 	logger *logrus.Logger
 }
 
-func New(repo Repository) *bll {
-	return &bll{repo: repo, logger: logrus.New()}
+func New(repo Repository, logger *logrus.Logger) *bll {
+	return &bll{repo: repo, logger: logger}
 }
 
 func (bll *bll) GetGaugeMetric(mName string) (float64, error) {

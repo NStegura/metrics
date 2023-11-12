@@ -11,6 +11,7 @@ type Config struct {
 	HTTPAddr       string
 	ReportInterval time.Duration
 	PollInterval   time.Duration
+	LogLevel       string
 }
 
 func NewConfig() *Config {
@@ -18,6 +19,7 @@ func NewConfig() *Config {
 		HTTPAddr:       ":8080",
 		ReportInterval: 10,
 		PollInterval:   2,
+		LogLevel:       "debug",
 	}
 }
 
