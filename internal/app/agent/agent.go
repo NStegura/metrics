@@ -99,8 +99,8 @@ func (ag *Agent) Start() error {
 }
 
 func getMetricsFromStats(stats runtime.MemStats, counter int64) models.Metrics {
-	gaugeMetrics := make(map[models.MetricName]*models.GaugeMetric)
-	counterMetrics := make(map[models.MetricName]*models.CounterMetric)
+	gaugeMetrics := make(map[models.MetricName]*models.GaugeMetric, 27)
+	counterMetrics := make(map[models.MetricName]*models.CounterMetric, 1)
 	metrics := models.Metrics{GaugeMetrics: gaugeMetrics, CounterMetrics: counterMetrics}
 
 	metrics.GaugeMetrics[Alloc] = &models.GaugeMetric{Name: Alloc, Type: Gauge, Value: float64(stats.Alloc)}
