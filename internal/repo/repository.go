@@ -1,9 +1,11 @@
 package repo
 
 import (
+	"fmt"
 	"github.com/NStegura/metrics/internal/customerrors"
 	"github.com/NStegura/metrics/internal/repo/models"
 	"github.com/sirupsen/logrus"
+	"strings"
 )
 
 type repository struct {
@@ -76,12 +78,16 @@ func (r *repository) GetAllMetrics() ([]models.GaugeMetric, []models.CounterMetr
 }
 
 func (r *repository) LogRepo() {
-	r.logger.Info("gaugeMetrics: ---------------------------------")
+	var sb strings.Builder
+
+	sb.WriteString("\ngaugeMetrics: ---------------------------------\n\t")
 	for name, metric := range r.gaugeMetrics {
-		r.logger.Infof("name: %s, metric: %v", name, *metric)
+		sb.WriteString(fmt.Sprintf("name: %s, metric: %v\n\t", name, *metric))
 	}
-	r.logger.Info("counterMetrics: ---------------------------------")
+	sb.WriteString("\ncounterMetrics: ---------------------------------\n\t")
 	for name, metric := range r.counterMetrics {
-		r.logger.Infof("name: %s metric: %v", name, *metric)
+		sb.WriteString(fmt.Sprintf("name: %s, metric: %v\n\t", name, *metric))
 	}
+
+	r.logger.Info(sb.String())
 }
