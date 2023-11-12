@@ -10,6 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 type APIServer struct {
@@ -62,17 +63,17 @@ func (s *APIServer) configRouter() {
 
 func (s *APIServer) getAllMetrics() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var body string
+		var sb strings.Builder
 		gms, cms := s.bll.GetAllMetrics()
 
 		for _, m := range gms {
-			body += fmt.Sprintf("%s: %v\r\n", m.Name, m.Value)
+			sb.WriteString(fmt.Sprintf("%s: %v\r\n", m.Name, m.Value))
 		}
 		for _, m := range cms {
-			body += fmt.Sprintf("%s: %v\r\n", m.Name, m.Value)
+			sb.WriteString(fmt.Sprintf("%s: %v\r\n", m.Name, m.Value))
 		}
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(body))
+		w.Write([]byte(sb.String()))
 	}
 }
 
@@ -84,10 +85,16 @@ func (s *APIServer) getCounterMetric() http.HandlerFunc {
 			return
 		}
 		metric, err := s.bll.GetCounterMetric(mName)
-		if errors.Is(err, customerrors.ErrNotFound) {
-			w.WriteHeader(http.StatusNotFound)
-			return
+		if err != nil {
+			if errors.Is(err, customerrors.ErrNotFound) {
+				w.WriteHeader(http.StatusNotFound)
+				return
+			} else {
+				w.WriteHeader(http.StatusUnprocessableEntity)
+				return
+			}
 		}
+
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(strconv.FormatInt(metric, 10)))
 	}
@@ -127,9 +134,14 @@ func (s *APIServer) getGaugeMetric() http.HandlerFunc {
 			return
 		}
 		metric, err := s.bll.GetGaugeMetric(mName)
-		if errors.Is(err, customerrors.ErrNotFound) {
-			w.WriteHeader(http.StatusNotFound)
-			return
+		if err != nil {
+			if errors.Is(err, customerrors.ErrNotFound) {
+				w.WriteHeader(http.StatusNotFound)
+				return
+			} else {
+				w.WriteHeader(http.StatusUnprocessableEntity)
+				return
+			}
 		}
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(fmt.Sprintf("%v", metric)))

@@ -19,9 +19,13 @@ func New(repo Repository, logger *logrus.Logger) *bll {
 
 func (bll *bll) GetGaugeMetric(mName string) (float64, error) {
 	gm, err := bll.repo.GetGaugeMetric(mName)
-	if errors.Is(err, customerrors.ErrNotFound) {
-		bll.logger.Warning(err) //debug
-		return 0, err
+	if err != nil {
+		if errors.Is(err, customerrors.ErrNotFound) {
+			bll.logger.Warning(err) //debug
+			return 0, err
+		} else {
+			return 0, err
+		}
 	}
 
 	return gm.Value, nil
@@ -29,8 +33,12 @@ func (bll *bll) GetGaugeMetric(mName string) (float64, error) {
 
 func (bll *bll) UpdateGaugeMetric(gmReq blModels.GaugeMetric) (err error) {
 	_, err = bll.repo.GetGaugeMetric(gmReq.Name)
-	if errors.Is(err, customerrors.ErrNotFound) {
-		bll.repo.CreateGaugeMetric(gmReq.Name, gmReq.Type, gmReq.Value)
+	if err != nil {
+		if errors.Is(err, customerrors.ErrNotFound) {
+			bll.repo.CreateGaugeMetric(gmReq.Name, gmReq.Type, gmReq.Value)
+		} else {
+			return err
+		}
 	}
 	err = bll.repo.UpdateGaugeMetric(gmReq.Name, gmReq.Value)
 
@@ -41,9 +49,8 @@ func (bll *bll) UpdateGaugeMetric(gmReq blModels.GaugeMetric) (err error) {
 
 func (bll *bll) GetCounterMetric(mName string) (int64, error) {
 	cm, err := bll.repo.GetCounterMetric(mName)
-	if errors.Is(err, customerrors.ErrNotFound) {
+	if err != nil {
 		bll.logger.Warning(err) //debug
-		return 0, err
 	}
 
 	return cm.Value, nil
@@ -51,9 +58,14 @@ func (bll *bll) GetCounterMetric(mName string) (int64, error) {
 
 func (bll *bll) UpdateCounterMetric(cmReq blModels.CounterMetric) (err error) {
 	cm, err := bll.repo.GetCounterMetric(cmReq.Name)
-	if errors.Is(err, customerrors.ErrNotFound) {
-		bll.repo.CreateCounterMetric(cmReq.Name, cmReq.Type, cmReq.Value)
+	if err != nil {
+		if errors.Is(err, customerrors.ErrNotFound) {
+			bll.repo.CreateCounterMetric(cmReq.Name, cmReq.Type, cmReq.Value)
+		} else {
+			return err
+		}
 	}
+
 	newVal := cm.Value + cmReq.Value
 	err = bll.repo.UpdateCounterMetric(cmReq.Name, newVal)
 
