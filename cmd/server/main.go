@@ -7,7 +7,7 @@ import (
 	"log"
 )
 
-func runRest() {
+func runRest() error {
 	config := metricsapi.NewConfig()
 	config.ParseFlags()
 
@@ -18,10 +18,13 @@ func runRest() {
 		),
 	)
 	if err := newServer.Start(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func main() {
+	if err := runRest(); err != nil {
 		log.Fatal(err)
 	}
-
-}
-func main() {
-	runRest()
 }
