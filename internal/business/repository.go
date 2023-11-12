@@ -1,6 +1,6 @@
-package bll
+package business
 
-import "github.com/NStegura/metrics/internal/dal/models"
+import "github.com/NStegura/metrics/internal/repo/models"
 
 type Repository interface {
 	GetCounterMetric(name string) (models.CounterMetric, error)

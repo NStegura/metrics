@@ -1,8 +1,8 @@
-package bll
+package business
 
 import (
 	"errors"
-	blModels "github.com/NStegura/metrics/internal/bll/models"
+	blModels "github.com/NStegura/metrics/internal/business/models"
 	"github.com/NStegura/metrics/internal/customerrors"
 	"github.com/sirupsen/logrus"
 	"sort"
@@ -23,7 +23,7 @@ func (bll *bll) GetGaugeMetric(mName string) (float64, error) {
 		bll.logger.Warning(err) //debug
 		return 0, err
 	}
-	
+
 	return gm.Value, nil
 }
 

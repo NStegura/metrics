@@ -1,8 +1,8 @@
-package dal
+package repo
 
 import (
 	"github.com/NStegura/metrics/internal/customerrors"
-	"github.com/NStegura/metrics/internal/dal/models"
+	"github.com/NStegura/metrics/internal/repo/models"
 	"github.com/sirupsen/logrus"
 )
 

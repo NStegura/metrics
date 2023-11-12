@@ -1,6 +1,6 @@
 package metricsapi
 
-import blModels "github.com/NStegura/metrics/internal/bll/models"
+import blModels "github.com/NStegura/metrics/internal/business/models"
 
 type Bll interface {
 	GetGaugeMetric(string) (float64, error)

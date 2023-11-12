@@ -2,8 +2,8 @@ package main
 
 import (
 	"github.com/NStegura/metrics/internal/app/metricsapi"
-	"github.com/NStegura/metrics/internal/bll"
-	"github.com/NStegura/metrics/internal/dal"
+	"github.com/NStegura/metrics/internal/business"
+	"github.com/NStegura/metrics/internal/repo"
 	"log"
 )
 
@@ -13,8 +13,8 @@ func runRest() {
 
 	newServer := metricsapi.New(
 		config,
-		bll.New(
-			dal.New(),
+		business.New(
+			repo.New(),
 		),
 	)
 	if err := newServer.Start(); err != nil {
