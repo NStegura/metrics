@@ -4,12 +4,13 @@ import (
 	"flag"
 	"os"
 	"strconv"
+	"time"
 )
 
 type Config struct {
 	HTTPAddr       string
-	ReportInterval int
-	PollInterval   int
+	ReportInterval time.Duration
+	PollInterval   time.Duration
 }
 
 func NewConfig() *Config {
@@ -21,15 +22,18 @@ func NewConfig() *Config {
 }
 
 func (c *Config) ParseFlags() {
+	var pollIntervalIn int
+	var reportIntervalIn int
+
 	flag.StringVar(&c.HTTPAddr, "a", "localhost:8080", "address and port to run server")
 	flag.IntVar(
-		&c.ReportInterval,
+		&reportIntervalIn,
 		"r",
 		10,
 		"frequency of sending metrics to the server",
 	)
 	flag.IntVar(
-		&c.PollInterval,
+		&pollIntervalIn,
 		"p",
 		2,
 		"frequency of polling metrics from the package",
@@ -40,9 +44,13 @@ func (c *Config) ParseFlags() {
 		c.HTTPAddr = envRunAddr
 	}
 	if report, ok := os.LookupEnv("REPORT_INTERVAL"); ok {
-		c.ReportInterval, _ = strconv.Atoi(report)
+		reportIntervalIn, _ = strconv.Atoi(report)
 	}
 	if poll, ok := os.LookupEnv("POLL_INTERVAL"); ok {
-		c.PollInterval, _ = strconv.Atoi(poll)
+		pollIntervalIn, _ = strconv.Atoi(poll)
 	}
+
+	c.ReportInterval = time.Second * time.Duration(reportIntervalIn)
+	c.PollInterval = time.Second * time.Duration(pollIntervalIn)
+
 }
