@@ -3,6 +3,7 @@ package metricsapi
 import (
 	"github.com/NStegura/metrics/internal/business"
 	"github.com/NStegura/metrics/internal/repo"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io"
@@ -26,9 +27,10 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string) (*http.
 }
 
 func TestUpdateGaugeMetricHandler(t *testing.T) {
-	r := repo.New()
-	businessLayer := business.New(r)
-	server := New(NewConfig(), businessLayer)
+	l := logrus.New()
+	r := repo.New(l)
+	businessLayer := business.New(r, l)
+	server := New(NewConfig(), businessLayer, l)
 	server.configRouter()
 
 	ts := httptest.NewServer(server.router)
