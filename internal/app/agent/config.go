@@ -23,7 +23,7 @@ func NewConfig() *Config {
 	}
 }
 
-func (c *Config) ParseFlags() {
+func (c *Config) ParseFlags() (err error) {
 	var pollIntervalIn int
 	var reportIntervalIn int
 
@@ -46,13 +46,19 @@ func (c *Config) ParseFlags() {
 		c.HTTPAddr = envRunAddr
 	}
 	if report, ok := os.LookupEnv("REPORT_INTERVAL"); ok {
-		reportIntervalIn, _ = strconv.Atoi(report)
+		reportIntervalIn, err = strconv.Atoi(report)
+		if err != nil {
+			return
+		}
 	}
 	if poll, ok := os.LookupEnv("POLL_INTERVAL"); ok {
-		pollIntervalIn, _ = strconv.Atoi(poll)
+		pollIntervalIn, err = strconv.Atoi(poll)
+		if err != nil {
+			return
+		}
 	}
 
 	c.ReportInterval = time.Second * time.Duration(reportIntervalIn)
 	c.PollInterval = time.Second * time.Duration(pollIntervalIn)
-
+	return
 }

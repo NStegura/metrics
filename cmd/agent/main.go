@@ -19,7 +19,10 @@ func configureLogger(config *agent.Config) (*logrus.Logger, error) {
 
 func main() {
 	config := agent.NewConfig()
-	config.ParseFlags()
+	err := config.ParseFlags()
+	if err != nil {
+		log.Fatal(err)
+	}
 	logger, err := configureLogger(config)
 	if err != nil {
 		log.Fatal(err)
