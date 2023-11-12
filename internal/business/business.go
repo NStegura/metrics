@@ -50,7 +50,12 @@ func (bll *bll) UpdateGaugeMetric(gmReq blModels.GaugeMetric) (err error) {
 func (bll *bll) GetCounterMetric(mName string) (int64, error) {
 	cm, err := bll.repo.GetCounterMetric(mName)
 	if err != nil {
-		bll.logger.Warning(err) //debug
+		if errors.Is(err, customerrors.ErrNotFound) {
+			bll.logger.Warning(err) //debug
+			return 0, err
+		} else {
+			return 0, err
+		}
 	}
 
 	return cm.Value, nil
