@@ -89,10 +89,9 @@ func (s *APIServer) getCounterMetric() http.HandlerFunc {
 			if errors.Is(err, customerrors.ErrNotFound) {
 				w.WriteHeader(http.StatusNotFound)
 				return
-			} else {
-				w.WriteHeader(http.StatusUnprocessableEntity)
-				return
 			}
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			return
 		}
 
 		w.WriteHeader(http.StatusOK)
@@ -138,10 +137,9 @@ func (s *APIServer) getGaugeMetric() http.HandlerFunc {
 			if errors.Is(err, customerrors.ErrNotFound) {
 				w.WriteHeader(http.StatusNotFound)
 				return
-			} else {
-				w.WriteHeader(http.StatusUnprocessableEntity)
-				return
 			}
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			return
 		}
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(fmt.Sprintf("%v", metric)))

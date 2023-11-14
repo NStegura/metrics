@@ -23,9 +23,8 @@ func (bll *bll) GetGaugeMetric(mName string) (float64, error) {
 		if errors.Is(err, customerrors.ErrNotFound) {
 			bll.logger.Warning(err) //debug
 			return 0, err
-		} else {
-			return 0, err
 		}
+		return 0, err
 	}
 
 	return gm.Value, nil
@@ -36,9 +35,8 @@ func (bll *bll) UpdateGaugeMetric(gmReq blModels.GaugeMetric) (err error) {
 	if err != nil {
 		if errors.Is(err, customerrors.ErrNotFound) {
 			bll.repo.CreateGaugeMetric(gmReq.Name, gmReq.Type, gmReq.Value)
-		} else {
-			return err
 		}
+		return err
 	}
 	err = bll.repo.UpdateGaugeMetric(gmReq.Name, gmReq.Value)
 
@@ -53,9 +51,8 @@ func (bll *bll) GetCounterMetric(mName string) (int64, error) {
 		if errors.Is(err, customerrors.ErrNotFound) {
 			bll.logger.Warning(err) //debug
 			return 0, err
-		} else {
-			return 0, err
 		}
+		return 0, err
 	}
 
 	return cm.Value, nil
@@ -66,9 +63,8 @@ func (bll *bll) UpdateCounterMetric(cmReq blModels.CounterMetric) (err error) {
 	if err != nil {
 		if errors.Is(err, customerrors.ErrNotFound) {
 			bll.repo.CreateCounterMetric(cmReq.Name, cmReq.Type, cmReq.Value)
-		} else {
-			return err
 		}
+		return err
 	}
 
 	newVal := cm.Value + cmReq.Value
