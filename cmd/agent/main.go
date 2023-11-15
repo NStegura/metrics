@@ -30,6 +30,6 @@ func main() {
 
 	ag := agent.New(config, logger)
 	if err = ag.Start(); err != nil {
-		log.Fatal(err)
+		logger.Fatal(err)
 	}
 }

@@ -35,7 +35,7 @@ func runRest() error {
 		),
 		logger,
 	)
-	if err := newServer.Start(); err != nil {
+	if err = newServer.Start(); err != nil {
 		return err
 	}
 	return nil

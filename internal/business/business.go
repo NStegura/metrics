@@ -35,6 +35,7 @@ func (bll *bll) UpdateGaugeMetric(gmReq blModels.GaugeMetric) (err error) {
 	if err != nil {
 		if errors.Is(err, customerrors.ErrNotFound) {
 			bll.repo.CreateGaugeMetric(gmReq.Name, gmReq.Type, gmReq.Value)
+			return nil
 		}
 		return err
 	}
@@ -63,6 +64,7 @@ func (bll *bll) UpdateCounterMetric(cmReq blModels.CounterMetric) (err error) {
 	if err != nil {
 		if errors.Is(err, customerrors.ErrNotFound) {
 			bll.repo.CreateCounterMetric(cmReq.Name, cmReq.Type, cmReq.Value)
+			return nil
 		}
 		return err
 	}
