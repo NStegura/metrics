@@ -33,7 +33,7 @@ func New(config *Config, bll Bll, logger *logrus.Logger) *APIServer {
 func (s *APIServer) Start() error {
 	s.configRouter()
 	s.logger.Info("starting APIServer")
-	return http.ListenAndServe(s.config.BindAddr, s.router)
+	return http.ListenAndServe(s.config.BindAddr, s.requestLogger(s.router))
 }
 
 func (s *APIServer) configRouter() {
@@ -116,12 +116,12 @@ func (s *APIServer) updateCounterMetric() http.HandlerFunc {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		s.logger.Info(cm) // debug
 		err = s.bll.UpdateCounterMetric(blModels.CounterMetric(cm))
 		if err != nil {
 			w.WriteHeader(http.StatusUnprocessableEntity)
 			return
 		}
+		w.WriteHeader(http.StatusOK)
 	}
 }
 
@@ -164,12 +164,12 @@ func (s *APIServer) updateGaugeMetric() http.HandlerFunc {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		s.logger.Info(gm) // debug
 		err = s.bll.UpdateGaugeMetric(blModels.GaugeMetric(gm))
 		if err != nil {
 			w.WriteHeader(http.StatusUnprocessableEntity)
 			return
 		}
+		w.WriteHeader(http.StatusOK)
 	}
 }
 

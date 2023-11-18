@@ -10,6 +10,7 @@ import (
 
 func configureLogger(config *metricsapi.Config) (*logrus.Logger, error) {
 	logger := logrus.New()
+	logger.Formatter = &logrus.TextFormatter{FullTimestamp: true}
 	level, err := logrus.ParseLevel(config.LogLevel)
 	if err != nil {
 		return nil, err

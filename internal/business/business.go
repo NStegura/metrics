@@ -40,9 +40,6 @@ func (bll *bll) UpdateGaugeMetric(gmReq blModels.GaugeMetric) (err error) {
 		return err
 	}
 	err = bll.repo.UpdateGaugeMetric(gmReq.Name, gmReq.Value)
-
-	// debug
-	bll.repo.LogRepo()
 	return
 }
 
@@ -71,9 +68,6 @@ func (bll *bll) UpdateCounterMetric(cmReq blModels.CounterMetric) (err error) {
 
 	newVal := cm.Value + cmReq.Value
 	err = bll.repo.UpdateCounterMetric(cmReq.Name, newVal)
-
-	// debug
-	bll.repo.LogRepo()
 	return
 }
 
