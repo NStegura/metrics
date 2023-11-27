@@ -1,6 +1,7 @@
 package metric
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"net/http"
@@ -62,6 +63,25 @@ func (c *client) UpdateCounterMetric(name string, value int64) error {
 		fmt.Sprintf("%s/update/counter/%s/%v", c.URL, name, value),
 		"text/plain",
 		nil,
+	)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return NewRequestError(resp)
+	}
+	return nil
+}
+
+func (c *client) UpdateMetric(jsonBody []byte) error {
+	bodyReader := bytes.NewReader(jsonBody)
+
+	resp, err := c.client.Post(
+		fmt.Sprintf("%s/update/", c.URL),
+		"application/json",
+		bodyReader,
 	)
 	if err != nil {
 		return err

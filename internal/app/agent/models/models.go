@@ -4,15 +4,15 @@ type MetricName string
 type MetricType string
 
 type GaugeMetric struct {
-	Name  MetricName
-	Type  MetricType
-	Value float64
+	Name  MetricName `json:"id"`
+	Type  MetricType `json:"type"`
+	Value float64    `json:"value"`
 }
 
 type CounterMetric struct {
-	Name  MetricName
-	Type  MetricType
-	Value int64
+	Name  MetricName `json:"id"`
+	Type  MetricType `json:"type"`
+	Value int64      `json:"delta"`
 }
 
 type Metrics struct {

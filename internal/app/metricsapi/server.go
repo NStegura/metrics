@@ -1,6 +1,7 @@
 package metricsapi
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/NStegura/metrics/internal/app/metricsapi/models"
@@ -40,6 +41,7 @@ func (s *APIServer) configRouter() {
 	s.router.Get(`/`, s.getAllMetrics())
 
 	s.router.Route(`/value`, func(r chi.Router) {
+		r.Post(`/`, s.getMetric())
 		r.Route(`/gauge`, func(r chi.Router) {
 			r.Get(`/{mName}`, s.getGaugeMetric())
 		})
@@ -49,6 +51,7 @@ func (s *APIServer) configRouter() {
 	})
 
 	s.router.Route(`/update`, func(r chi.Router) {
+		r.Post(`/`, s.updateMetric())
 		r.Post(`/{mType}/{mName}/{mValue}`, func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusBadRequest)
 		})
@@ -171,6 +174,101 @@ func (s *APIServer) updateGaugeMetric() http.HandlerFunc {
 		}
 		w.WriteHeader(http.StatusOK)
 	}
+}
+
+func (s *APIServer) updateMetric() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var metric models.Metrics
+
+		if err := json.NewDecoder(r.Body).Decode(&metric); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		switch metric.MType {
+		case "gauge":
+			if metric.Value == nil {
+				http.Error(w, "metric value null", http.StatusBadRequest)
+				return
+			}
+			err := s.bll.UpdateGaugeMetric(
+				blModels.GaugeMetric{
+					Name: metric.ID, Type: metric.MType, Value: *metric.Value,
+				})
+			if err != nil {
+				w.WriteHeader(http.StatusUnprocessableEntity)
+				return
+			}
+		case "counter":
+			if metric.Delta == nil {
+				http.Error(w, "metric value null", http.StatusBadRequest)
+				return
+			}
+			err := s.bll.UpdateCounterMetric(
+				blModels.CounterMetric{
+					Name: metric.ID, Type: metric.MType, Value: *metric.Delta,
+				})
+			if err != nil {
+				w.WriteHeader(http.StatusUnprocessableEntity)
+				return
+			}
+		default:
+			http.Error(w, "unknown metric type", http.StatusBadRequest)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}
+}
+
+func (s *APIServer) getMetric() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		s.logger.Info(r.Header.Get("Content-Type") == "application/json")
+
+		var metric models.Metrics
+		if err := json.NewDecoder(r.Body).Decode(&metric); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		switch metric.MType {
+		case "gauge":
+			gm, err := s.bll.GetGaugeMetric(metric.ID)
+			if err != nil {
+				if errors.Is(err, customerrors.ErrNotFound) {
+					w.WriteHeader(http.StatusNotFound)
+					return
+				}
+				w.WriteHeader(http.StatusUnprocessableEntity)
+				return
+			}
+			metric.Value = &gm
+			WriteJsonResp(metric, w)
+		case "counter":
+			cm, err := s.bll.GetCounterMetric(metric.ID)
+			if err != nil {
+				if errors.Is(err, customerrors.ErrNotFound) {
+					w.WriteHeader(http.StatusNotFound)
+					return
+				}
+				w.WriteHeader(http.StatusUnprocessableEntity)
+				return
+			}
+			metric.Delta = &cm
+			WriteJsonResp(metric, w)
+		default:
+			http.Error(w, "unknown metric type", http.StatusBadRequest)
+			return
+		}
+	}
+}
+
+func WriteJsonResp(resp interface{}, w http.ResponseWriter) {
+	enc := json.NewEncoder(w)
+	if err := enc.Encode(resp); err != nil {
+		w.WriteHeader(http.StatusUnprocessableEntity)
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 }
 
 func parseMetric(url string, mtype string, mName string, mValue string) (metric models.Metric, err error) {

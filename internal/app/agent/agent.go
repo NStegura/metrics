@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"encoding/json"
 	"github.com/NStegura/metrics/internal/app/agent/models"
 	"github.com/NStegura/metrics/internal/clients/metric"
 	"github.com/sirupsen/logrus"
@@ -41,8 +42,8 @@ const (
 	RandomValue models.MetricName = "RandomValue"
 	PollCount   models.MetricName = "PollCount"
 
-	Gauge   models.MetricType = "Gauge"
-	Counter models.MetricType = "Counter"
+	Gauge   models.MetricType = "gauge"
+	Counter models.MetricType = "counter"
 )
 
 type Agent struct {
@@ -82,14 +83,23 @@ func (ag *Agent) Start() error {
 		time.Sleep(ag.config.ReportInterval)
 		mu.Lock()
 		for _, m := range metrics.GaugeMetrics {
-			err := metricsCli.UpdateGaugeMetric(string(m.Name), m.Value)
+			ag.logger.Info(*m)
+			jsonBody, err := json.Marshal(m)
+			if err != nil {
+				ag.logger.Fatal(err)
+			}
+			err = metricsCli.UpdateMetric(jsonBody)
 			if err != nil {
 				ag.logger.Error(err)
 			}
 		}
 		for _, m := range metrics.CounterMetrics {
-			err := metricsCli.UpdateCounterMetric(string(m.Name), m.Value)
 			ag.logger.Info(*m)
+			jsonBody, err := json.Marshal(m)
+			if err != nil {
+				ag.logger.Fatal(err)
+			}
+			err = metricsCli.UpdateMetric(jsonBody)
 			if err != nil {
 				ag.logger.Error(err)
 			}
