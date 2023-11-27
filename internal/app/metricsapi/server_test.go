@@ -66,7 +66,7 @@ func TestUpdateGaugeMetricHandler(t *testing.T) {
 		{
 			method: http.MethodPost,
 			name:   "update",
-			url:    "/update/",
+			url:    "/update/dsfds",
 			want: want{
 				statusCode: http.StatusNotFound,
 			},
