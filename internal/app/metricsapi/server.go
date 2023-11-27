@@ -222,9 +222,8 @@ func (s *APIServer) updateMetric() http.HandlerFunc {
 
 func (s *APIServer) getMetric() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		s.logger.Info(r.Header.Get("Content-Type") == "application/json")
-
 		var metric models.Metrics
+
 		if err := json.NewDecoder(r.Body).Decode(&metric); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
@@ -237,9 +236,10 @@ func (s *APIServer) getMetric() http.HandlerFunc {
 				if errors.Is(err, customerrors.ErrNotFound) {
 					w.WriteHeader(http.StatusNotFound)
 					return
+				} else {
+					w.WriteHeader(http.StatusUnprocessableEntity)
+					return
 				}
-				w.WriteHeader(http.StatusUnprocessableEntity)
-				return
 			}
 			metric.Value = &gm
 			WriteJsonResp(metric, w)
@@ -249,9 +249,10 @@ func (s *APIServer) getMetric() http.HandlerFunc {
 				if errors.Is(err, customerrors.ErrNotFound) {
 					w.WriteHeader(http.StatusNotFound)
 					return
+				} else {
+					w.WriteHeader(http.StatusUnprocessableEntity)
+					return
 				}
-				w.WriteHeader(http.StatusUnprocessableEntity)
-				return
 			}
 			metric.Delta = &cm
 			WriteJsonResp(metric, w)
@@ -262,9 +263,9 @@ func (s *APIServer) getMetric() http.HandlerFunc {
 	}
 }
 
-func WriteJsonResp(resp interface{}, w http.ResponseWriter) {
-	enc := json.NewEncoder(w)
-	if err := enc.Encode(resp); err != nil {
+func WriteJsonResp(resp any, w http.ResponseWriter) {
+	resp, err := json.Marshal(resp)
+	if err != nil {
 		w.WriteHeader(http.StatusUnprocessableEntity)
 	}
 	w.Header().Set("Content-Type", "application/json")
