@@ -236,26 +236,24 @@ func (s *APIServer) getMetric() http.HandlerFunc {
 				if errors.Is(err, customerrors.ErrNotFound) {
 					w.WriteHeader(http.StatusNotFound)
 					return
-				} else {
-					w.WriteHeader(http.StatusUnprocessableEntity)
-					return
 				}
+				w.WriteHeader(http.StatusUnprocessableEntity)
+				return
 			}
 			metric.Value = &gm
-			WriteJsonResp(metric, w)
+			WriteJSONResp(metric, w)
 		case "counter":
 			cm, err := s.bll.GetCounterMetric(metric.ID)
 			if err != nil {
 				if errors.Is(err, customerrors.ErrNotFound) {
 					w.WriteHeader(http.StatusNotFound)
 					return
-				} else {
-					w.WriteHeader(http.StatusUnprocessableEntity)
-					return
 				}
+				w.WriteHeader(http.StatusUnprocessableEntity)
+				return
 			}
 			metric.Delta = &cm
-			WriteJsonResp(metric, w)
+			WriteJSONResp(metric, w)
 		default:
 			http.Error(w, "unknown metric type", http.StatusBadRequest)
 			return
@@ -263,7 +261,7 @@ func (s *APIServer) getMetric() http.HandlerFunc {
 	}
 }
 
-func WriteJsonResp(resp any, w http.ResponseWriter) {
+func WriteJSONResp(resp any, w http.ResponseWriter) {
 	resp, err := json.Marshal(resp)
 	if err != nil {
 		w.WriteHeader(http.StatusUnprocessableEntity)
