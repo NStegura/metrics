@@ -31,6 +31,7 @@ const (
 	MSpanSys      models.MetricName = "MSpanSys"
 	Mallocs       models.MetricName = "Mallocs"
 	NextGC        models.MetricName = "NextGC"
+	NumGC         models.MetricName = "NumGC"
 	NumForcedGC   models.MetricName = "NumForcedGC"
 	OtherSys      models.MetricName = "OtherSys"
 	PauseTotalNs  models.MetricName = "PauseTotalNs"
@@ -132,6 +133,7 @@ func getMetricsFromStats(stats runtime.MemStats, counter int64) models.Metrics {
 	metrics.GaugeMetrics[MSpanSys] = &models.GaugeMetric{Name: MSpanSys, Type: Gauge, Value: float64(stats.MSpanSys)}
 	metrics.GaugeMetrics[Mallocs] = &models.GaugeMetric{Name: Mallocs, Type: Gauge, Value: float64(stats.Mallocs)}
 	metrics.GaugeMetrics[NextGC] = &models.GaugeMetric{Name: NextGC, Type: Gauge, Value: float64(stats.NextGC)}
+	metrics.GaugeMetrics[NumGC] = &models.GaugeMetric{Name: NumGC, Type: Gauge, Value: float64(stats.NumForcedGC)}
 	metrics.GaugeMetrics[NumForcedGC] = &models.GaugeMetric{Name: NumForcedGC, Type: Gauge, Value: float64(stats.NumForcedGC)}
 	metrics.GaugeMetrics[OtherSys] = &models.GaugeMetric{Name: OtherSys, Type: Gauge, Value: float64(stats.OtherSys)}
 	metrics.GaugeMetrics[PauseTotalNs] = &models.GaugeMetric{Name: PauseTotalNs, Type: Gauge, Value: float64(stats.PauseTotalNs)}
