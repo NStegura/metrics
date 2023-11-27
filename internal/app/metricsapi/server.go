@@ -262,12 +262,13 @@ func (s *APIServer) getMetric() http.HandlerFunc {
 }
 
 func WriteJSONResp(resp any, w http.ResponseWriter) {
-	resp, err := json.Marshal(resp)
+	jsonResp, err := json.Marshal(resp)
 	if err != nil {
 		w.WriteHeader(http.StatusUnprocessableEntity)
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
+	w.Write(jsonResp)
 }
 
 func parseMetric(url string, mtype string, mName string, mValue string) (metric models.Metric, err error) {
