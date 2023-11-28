@@ -6,6 +6,9 @@ import (
 	"github.com/NStegura/metrics/internal/repo"
 	"github.com/sirupsen/logrus"
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
 func configureLogger(config *metricsapi.Config) (*logrus.Logger, error) {
@@ -27,15 +30,36 @@ func runRest() error {
 	if err != nil {
 		return err
 	}
+	r := repo.New(
+		config.StoreInterval,
+		config.FileStoragePath,
+		config.Restore,
+		logger,
+	)
+	defer r.Shutdown()
 
 	newServer := metricsapi.New(
 		config,
-		business.New(
-			repo.New(logger),
-			logger,
-		),
+		business.New(r, logger),
 		logger,
 	)
+
+	go func() {
+		err := r.StartBackup()
+		if err != nil {
+			logger.Warningf("Backup save err, %s", err)
+		}
+	}()
+
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		sig := <-sigs
+		r.Shutdown()
+		logger.Fatal(sig)
+	}()
+
 	if err = newServer.Start(); err != nil {
 		return err
 	}
