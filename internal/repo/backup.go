@@ -36,12 +36,19 @@ func (r *repository) MakeBackup() error {
 	backupPath := filepath.Join(baseDir, r.fileStoragePath)
 	r.logger.Infof("Make backup to %s", backupPath)
 
-	r.logger.Infof("Try create path %s", filepath.Dir(backupPath))
-	err = os.Mkdir(filepath.Dir(backupPath), 0777)
+	dirPath := filepath.Dir(backupPath)
+
+	if _, err := os.Stat(dirPath); os.IsNotExist(err) {
+		r.logger.Infof("Try create path %s", dirPath)
+		err = os.MkdirAll(dirPath, os.ModePerm)
+	}
 	if err != nil {
 		return err
 	}
 	file, err := os.OpenFile(backupPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
+	if err != nil {
+		return err
+	}
 	defer file.Close()
 	data, err := json.MarshalIndent(r.m, "", "  ")
 	if err != nil {
