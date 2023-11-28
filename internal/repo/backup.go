@@ -38,13 +38,14 @@ func (r *repository) MakeBackup() error {
 
 	dirPath := filepath.Dir(backupPath)
 
-	if _, err := os.Stat(dirPath); os.IsNotExist(err) {
+	if _, err = os.Stat(dirPath); os.IsNotExist(err) {
 		r.logger.Infof("Try create path %s", dirPath)
 		err = os.MkdirAll(dirPath, os.ModePerm)
+		if err != nil {
+			return err
+		}
 	}
-	if err != nil {
-		return err
-	}
+
 	file, err := os.OpenFile(backupPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
 		return err
