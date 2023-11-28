@@ -42,12 +42,12 @@ func NewRequestError(response *http.Response) error {
 	return &RequestError{response.Request.URL, response.StatusCode, body}
 }
 
-func (c *client) UpdateGaugeMetric(name string, value float64) error {
+func (c *client) UpdateGaugeMetric(name string, value float64, compressType string) error {
 	resp, err := c.Post(
 		fmt.Sprintf("%s/update/gauge/%s/%v", c.URL, name, value),
 		"text/plain",
 		nil,
-		"",
+		compressType,
 	)
 	if err != nil {
 		return err
@@ -60,12 +60,12 @@ func (c *client) UpdateGaugeMetric(name string, value float64) error {
 	return nil
 }
 
-func (c *client) UpdateCounterMetric(name string, value int64) error {
+func (c *client) UpdateCounterMetric(name string, value int64, compressType string) error {
 	resp, err := c.Post(
 		fmt.Sprintf("%s/update/counter/%s/%v", c.URL, name, value),
 		"text/plain",
 		nil,
-		"",
+		compressType,
 	)
 	if err != nil {
 		return err
