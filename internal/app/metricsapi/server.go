@@ -75,6 +75,7 @@ func (s *APIServer) getAllMetrics() http.HandlerFunc {
 		for _, m := range cms {
 			sb.WriteString(fmt.Sprintf("%s: %v\r\n", m.Name, m.Value))
 		}
+		w.Header().Set("Content-Type", "text/html")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(sb.String()))
 	}
@@ -96,7 +97,7 @@ func (s *APIServer) getCounterMetric() http.HandlerFunc {
 			w.WriteHeader(http.StatusUnprocessableEntity)
 			return
 		}
-
+		w.Header().Set("Content-Type", "text/html")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(strconv.FormatInt(metric, 10)))
 	}
@@ -144,6 +145,7 @@ func (s *APIServer) getGaugeMetric() http.HandlerFunc {
 			w.WriteHeader(http.StatusUnprocessableEntity)
 			return
 		}
+		w.Header().Set("Content-Type", "text/html")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(fmt.Sprintf("%v", metric)))
 	}
