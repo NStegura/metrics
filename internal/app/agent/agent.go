@@ -89,7 +89,7 @@ func (ag *Agent) Start() error {
 			if err != nil {
 				ag.logger.Fatal(err)
 			}
-			err = metricsCli.UpdateMetric(jsonBody)
+			err = metricsCli.UpdateMetric(jsonBody, "gzip")
 			if err != nil {
 				ag.logger.Error(err)
 			}
@@ -100,7 +100,7 @@ func (ag *Agent) Start() error {
 			if err != nil {
 				ag.logger.Fatal(err)
 			}
-			err = metricsCli.UpdateMetric(jsonBody)
+			err = metricsCli.UpdateMetric(jsonBody, "gzip")
 			if err != nil {
 				ag.logger.Error(err)
 			}
