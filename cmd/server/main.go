@@ -25,7 +25,10 @@ func configureLogger(config *metricsapi.Config) (*logrus.Logger, error) {
 
 func runRest() error {
 	config := metricsapi.NewConfig()
-	config.ParseFlags()
+	err := config.ParseFlags()
+	if err != nil {
+		return err
+	}
 	logger, err := configureLogger(config)
 	if err != nil {
 		return err
