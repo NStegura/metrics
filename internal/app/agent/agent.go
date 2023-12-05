@@ -43,8 +43,8 @@ const (
 	randomValue models.MetricName = "RandomValue"
 	pollCount   models.MetricName = "PollCount"
 
-	gauge   models.MetricType = "gauge"
-	counter models.MetricType = "counter"
+	gauge    models.MetricType = "gauge"
+	counterT models.MetricType = "counter"
 )
 
 type Agent struct {
@@ -143,6 +143,6 @@ func getMetricsFromStats(stats runtime.MemStats, counter int64) models.Metrics {
 	metrics.GaugeMetrics[totalAlloc] = &models.GaugeMetric{Name: totalAlloc, Type: gauge, Value: float64(stats.TotalAlloc)}
 
 	metrics.GaugeMetrics[randomValue] = &models.GaugeMetric{Name: randomValue, Type: gauge, Value: rand.Float64()}
-	metrics.CounterMetrics[pollCount] = &models.CounterMetric{Name: pollCount, Type: gauge, Value: counter}
+	metrics.CounterMetrics[pollCount] = &models.CounterMetric{Name: pollCount, Type: counterT, Value: counter}
 	return metrics
 }
