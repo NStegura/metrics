@@ -1,14 +1,24 @@
 package main
 
 import (
+	"context"
+	"errors"
+	"fmt"
 	"github.com/NStegura/metrics/internal/app/metricsapi"
 	"github.com/NStegura/metrics/internal/business"
 	"github.com/NStegura/metrics/internal/repo"
 	"github.com/sirupsen/logrus"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
+	"time"
+)
+
+const (
+	timeoutShutdown = time.Second * 10
 )
 
 func configureLogger(config *metricsapi.Config) (*logrus.Logger, error) {
@@ -24,6 +34,9 @@ func configureLogger(config *metricsapi.Config) (*logrus.Logger, error) {
 }
 
 func runRest() error {
+	ctx, cancelCtx := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer cancelCtx()
+
 	config := metricsapi.NewConfig()
 	err := config.ParseFlags()
 	if err != nil {
@@ -33,22 +46,46 @@ func runRest() error {
 	if err != nil {
 		return err
 	}
-	r := repo.New(
+
+	db := repo.New(
 		config.StoreInterval,
 		config.FileStoragePath,
 		config.Restore,
 		logger,
 	)
-	defer r.Shutdown()
+
+	wg := &sync.WaitGroup{}
+	defer func() {
+		wg.Wait()
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer log.Print("closed DB")
+		defer wg.Done()
+		<-ctx.Done()
+
+		db.Shutdown()
+	}()
+
+	componentsErrs := make(chan error, 1)
 
 	newServer := metricsapi.New(
 		config,
-		business.New(r, logger),
+		business.New(db, logger),
 		logger,
 	)
+	go func(errs chan<- error) {
+		if err = newServer.Start(); err != nil {
+			if errors.Is(err, http.ErrServerClosed) {
+				return
+			}
+			errs <- fmt.Errorf("listen and server has failed: %w", err)
+		}
+	}(componentsErrs)
 
 	go func() {
-		err := r.StartBackup()
+		err := db.StartBackup()
 		if err != nil {
 			logger.Warningf("Backup save err, %s", err)
 		}
@@ -57,15 +94,21 @@ func runRest() error {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, os.Interrupt, syscall.SIGTERM)
 
+	select {
+	case <-ctx.Done():
+	case err := <-componentsErrs:
+		log.Print(err)
+		cancelCtx()
+	}
+
 	go func() {
-		sig := <-sigs
-		r.Shutdown()
-		logger.Fatal(sig)
+		ctx, cancelCtx := context.WithTimeout(context.Background(), timeoutShutdown)
+		defer cancelCtx()
+
+		<-ctx.Done()
+		log.Fatal("failed to gracefully shutdown the service")
 	}()
 
-	if err = newServer.Start(); err != nil {
-		return err
-	}
 	return nil
 }
 
