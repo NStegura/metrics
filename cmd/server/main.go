@@ -61,7 +61,7 @@ func runRest() error {
 
 	wg.Add(1)
 	go func() {
-		defer log.Print("closed DB")
+		defer logger.Info("closed DB")
 		defer wg.Done()
 		<-ctx.Done()
 

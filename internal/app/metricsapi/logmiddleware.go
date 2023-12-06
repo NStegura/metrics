@@ -27,8 +27,8 @@ func (r *loggingResponseWriter) WriteHeader(statusCode int) {
 	r.responseData.status = statusCode
 }
 
-func (s *APIServer) requestLogger(h http.Handler) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+func (s *APIServer) requestLogger(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		responseData := &responseData{
 			status: 0,
@@ -48,5 +48,5 @@ func (s *APIServer) requestLogger(h http.Handler) http.HandlerFunc {
 			"duration": duration,
 			"size":     responseData.size,
 		}).Info()
-	}
+	})
 }

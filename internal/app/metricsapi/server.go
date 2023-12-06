@@ -33,11 +33,15 @@ func New(config *Config, bll Bll, logger *logrus.Logger) *APIServer {
 
 func (s *APIServer) Start() error {
 	s.configRouter()
+
 	s.logger.Info("starting APIServer")
-	return http.ListenAndServe(s.config.BindAddr, s.requestLogger(s.gzipMiddleware(s.router)))
+	return http.ListenAndServe(s.config.BindAddr, s.router)
 }
 
 func (s *APIServer) configRouter() {
+	s.router.Use(s.requestLogger)
+	s.router.Use(s.gzipMiddleware)
+
 	s.router.Get(`/`, s.getAllMetrics())
 
 	s.router.Route(`/value`, func(r chi.Router) {
