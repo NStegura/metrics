@@ -18,11 +18,7 @@ type InMemoryRepo struct {
 }
 
 func NewInMemoryRepo(logger *logrus.Logger) *InMemoryRepo {
-	metrics := Metrics{
-		map[string]*models.GaugeMetric{},
-		map[string]*models.CounterMetric{},
-	}
-	return &InMemoryRepo{&metrics, logger}
+	return &InMemoryRepo{nil, logger}
 }
 
 func (r *InMemoryRepo) GetCounterMetric(name string) (cm models.CounterMetric, err error) {
@@ -81,7 +77,12 @@ func (r *InMemoryRepo) GetAllMetrics() ([]models.GaugeMetric, []models.CounterMe
 	return gaugeMetrics, counterMetrics
 }
 
-func (r *InMemoryRepo) StartBackup() error {
+func (r *InMemoryRepo) Init() error {
+	r.logger.Info("Init repo")
+	r.m = &Metrics{
+		map[string]*models.GaugeMetric{},
+		map[string]*models.CounterMetric{},
+	}
 	return nil
 }
 

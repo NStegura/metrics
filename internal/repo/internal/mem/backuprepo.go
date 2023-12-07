@@ -22,19 +22,8 @@ func NewBackupRepo(
 	fileStoragePath string,
 	logger *logrus.Logger,
 ) *BackupRepo {
-
-	metrics := Metrics{
-		map[string]*models.GaugeMetric{},
-		map[string]*models.CounterMetric{},
-	}
-
-	logger.Info("LoadBackup")
-	metrics, err := LoadBackup(fileStoragePath)
-	if err != nil {
-		logger.Warningf("backup load err, %s", err)
-	}
 	return &BackupRepo{
-		InMemoryRepo{m: &metrics, logger: logger},
+		InMemoryRepo{m: nil, logger: logger},
 		storeInterval,
 		fileStoragePath,
 		storeInterval == 0,
@@ -44,7 +33,7 @@ func NewBackupRepo(
 func (r *BackupRepo) CreateCounterMetric(name string, mType string, value int64) {
 	r.InMemoryRepo.CreateCounterMetric(name, mType, value)
 	if r.synchronously {
-		err := r.MakeBackup()
+		err := r.makeBackup()
 		if err != nil {
 			r.logger.Warningf("Make backup fail, %s", err)
 		}
@@ -57,7 +46,7 @@ func (r *BackupRepo) UpdateCounterMetric(name string, value int64) error {
 		return err
 	}
 	if r.synchronously {
-		err := r.MakeBackup()
+		err := r.makeBackup()
 		if err != nil {
 			r.logger.Warningf("Make backup fail, %s", err)
 		}
@@ -68,7 +57,7 @@ func (r *BackupRepo) UpdateCounterMetric(name string, value int64) error {
 func (r *BackupRepo) CreateGaugeMetric(name string, mType string, value float64) {
 	r.InMemoryRepo.CreateGaugeMetric(name, mType, value)
 	if r.synchronously {
-		err := r.MakeBackup()
+		err := r.makeBackup()
 		if err != nil {
 			r.logger.Warningf("Make backup fail, %s", err)
 		}
@@ -81,7 +70,7 @@ func (r *BackupRepo) UpdateGaugeMetric(name string, value float64) error {
 		return err
 	}
 	if r.synchronously {
-		err := r.MakeBackup()
+		err := r.makeBackup()
 		if err != nil {
 			r.logger.Warningf("Make backup fail, %s", err)
 		}
@@ -89,31 +78,51 @@ func (r *BackupRepo) UpdateGaugeMetric(name string, value float64) error {
 	return nil
 }
 
+func (r *BackupRepo) Init() error {
+	err := r.InMemoryRepo.Init()
+	if err != nil {
+		return err
+	}
+	r.logger.Info("Init backup")
+
+	metrics, err := r.loadBackup(r.fileStoragePath)
+	if err != nil {
+		r.logger.Warningf("backup load err, %s", err)
+	}
+	r.m = &metrics
+
+	go func() {
+		err := r.startBackup()
+		if err != nil {
+			r.logger.Warningf("Backup save err, %s", err)
+		}
+	}()
+	return nil
+}
+
 func (r *BackupRepo) Shutdown() {
 	r.logger.Info("Repo shutdown")
-	err := r.MakeBackup()
+	err := r.makeBackup()
 	if err != nil {
 		r.logger.Warningf("Last backup save err, %s", err)
 	}
 }
 
-func (r *BackupRepo) StartBackup() error {
-	r.InMemoryRepo.StartBackup()
-
+func (r *BackupRepo) startBackup() error {
 	if r.storeInterval == 0 {
 		r.logger.Info("storeInterval = 0, only sync backup")
 		return nil
 	}
 	for {
 		time.Sleep(r.storeInterval)
-		err := r.MakeBackup()
+		err := r.makeBackup()
 		if err != nil {
 			return err
 		}
 	}
 }
 
-func (r *BackupRepo) MakeBackup() error {
+func (r *BackupRepo) makeBackup() error {
 	if r.fileStoragePath == "" {
 		r.logger.Infof("Backup is disabled, fileStoragePath = ''")
 		return nil
@@ -150,7 +159,8 @@ func (r *BackupRepo) MakeBackup() error {
 	return err
 }
 
-func LoadBackup(fileStoragePath string) (Metrics, error) {
+func (r *BackupRepo) loadBackup(fileStoragePath string) (Metrics, error) {
+	r.logger.Info("LoadBackup")
 	metrics := Metrics{
 		map[string]*models.GaugeMetric{},
 		map[string]*models.CounterMetric{},

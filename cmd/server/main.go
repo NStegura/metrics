@@ -54,6 +54,11 @@ func runRest() error {
 		logger,
 	)
 
+	err = db.Init()
+	if err != nil {
+		return err
+	}
+
 	wg := &sync.WaitGroup{}
 	defer func() {
 		wg.Wait()
@@ -83,13 +88,6 @@ func runRest() error {
 			errs <- fmt.Errorf("listen and server has failed: %w", err)
 		}
 	}(componentsErrs)
-
-	go func() {
-		err := db.StartBackup()
-		if err != nil {
-			logger.Warningf("Backup save err, %s", err)
-		}
-	}()
 
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, os.Interrupt, syscall.SIGTERM)
