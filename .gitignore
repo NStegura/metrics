@@ -15,7 +15,6 @@
 cmd/agent/main
 cmd/agent/agent
 cmd/server/server
-cmd/server/server
 
 # Dependency directories (remove the comment below to include it)
 vendor/
@@ -25,3 +24,8 @@ vendor/
 .vscode
 
 *tmp
+
+# Linters
+golangci-lint
+.golangci-lint
+.golangci.yml
