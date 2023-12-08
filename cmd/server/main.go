@@ -9,7 +9,6 @@ import (
 	"os"
 	"os/signal"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/NStegura/metrics/internal/app/metricsapi"
@@ -89,9 +88,6 @@ func runRest() error {
 			errs <- fmt.Errorf("listen and server has failed: %w", err)
 		}
 	}(componentsErrs)
-
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, os.Interrupt, syscall.SIGTERM)
 
 	select {
 	case <-ctx.Done():
