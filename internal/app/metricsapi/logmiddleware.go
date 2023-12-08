@@ -1,9 +1,11 @@
 package metricsapi
 
 import (
-	"github.com/sirupsen/logrus"
+	"fmt"
 	"net/http"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 type responseData struct {
@@ -18,8 +20,11 @@ type loggingResponseWriter struct {
 
 func (r *loggingResponseWriter) Write(b []byte) (int, error) {
 	size, err := r.ResponseWriter.Write(b)
+	if err != nil {
+		return 0, fmt.Errorf("failed to write log resp: %w", err)
+	}
 	r.responseData.size += size
-	return size, err
+	return size, nil
 }
 
 func (r *loggingResponseWriter) WriteHeader(statusCode int) {

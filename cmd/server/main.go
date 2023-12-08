@@ -4,10 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/NStegura/metrics/internal/app/metricsapi"
-	"github.com/NStegura/metrics/internal/business"
-	"github.com/NStegura/metrics/internal/repo"
-	"github.com/sirupsen/logrus"
 	"log"
 	"net/http"
 	"os"
@@ -15,6 +11,11 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/NStegura/metrics/internal/app/metricsapi"
+	"github.com/NStegura/metrics/internal/business"
+	"github.com/NStegura/metrics/internal/repo"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -26,7 +27,7 @@ func configureLogger(config *metricsapi.Config) (*logrus.Logger, error) {
 	logger.Formatter = &logrus.TextFormatter{FullTimestamp: true}
 	level, err := logrus.ParseLevel(config.LogLevel)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse log level: %w", err)
 	}
 
 	logger.SetLevel(level)
@@ -40,7 +41,7 @@ func runRest() error {
 	config := metricsapi.NewConfig()
 	err := config.ParseFlags()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to parse config: %w", err)
 	}
 	logger, err := configureLogger(config)
 	if err != nil {
@@ -56,7 +57,7 @@ func runRest() error {
 
 	err = db.Init()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to init db: %w", err)
 	}
 
 	wg := &sync.WaitGroup{}

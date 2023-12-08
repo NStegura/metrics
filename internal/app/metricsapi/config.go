@@ -7,11 +7,15 @@ import (
 	"time"
 )
 
+const (
+	defaultStoreInerval time.Duration = 300
+)
+
 type Config struct {
 	BindAddr        string
 	LogLevel        string
-	StoreInterval   time.Duration
 	FileStoragePath string
+	StoreInterval   time.Duration
 	Restore         bool
 }
 
@@ -19,7 +23,7 @@ func NewConfig() *Config {
 	return &Config{
 		BindAddr:        ":8080",
 		LogLevel:        "debug",
-		StoreInterval:   300,
+		StoreInterval:   defaultStoreInerval,
 		FileStoragePath: "/tmp/metrics-db.json",
 		Restore:         false,
 	}
@@ -32,7 +36,7 @@ func (c *Config) ParseFlags() (err error) {
 	flag.IntVar(
 		&storeInterval,
 		"i",
-		300,
+		int(defaultStoreInerval),
 		"frequency of saving metrics to dump",
 	)
 	flag.StringVar(&c.FileStoragePath, "f", "/tmp/metrics-db.json", "storage path")
@@ -51,11 +55,12 @@ func (c *Config) ParseFlags() (err error) {
 	}
 
 	if restoreIn, ok := os.LookupEnv("RESTORE"); ok {
-		if restoreIn == "true" {
+		switch restoreIn {
+		case "true":
 			c.Restore = true
-		} else if restoreIn == "false" {
+		case "false":
 			c.Restore = false
-		} else {
+		default:
 			c.Restore = true
 		}
 	}

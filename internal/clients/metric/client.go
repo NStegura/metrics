@@ -23,8 +23,8 @@ func New(url string) *client {
 
 type RequestError struct {
 	URL        *url.URL
-	StatusCode int
 	Body       []byte
+	StatusCode int
 }
 
 func (e RequestError) Error() string {
@@ -37,9 +37,9 @@ func (e RequestError) Error() string {
 func NewRequestError(response *http.Response) error {
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to read metric client resp: %w", err)
 	}
-	return &RequestError{response.Request.URL, response.StatusCode, body}
+	return &RequestError{response.Request.URL, body, response.StatusCode}
 }
 
 func (c *client) UpdateGaugeMetric(name string, value float64, compressType string) error {
@@ -52,7 +52,9 @@ func (c *client) UpdateGaugeMetric(name string, value float64, compressType stri
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return NewRequestError(resp)
@@ -70,7 +72,9 @@ func (c *client) UpdateCounterMetric(name string, value int64, compressType stri
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return NewRequestError(resp)
@@ -88,7 +92,9 @@ func (c *client) UpdateMetric(jsonBody []byte, compressType string) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return NewRequestError(resp)
@@ -96,8 +102,13 @@ func (c *client) UpdateMetric(jsonBody []byte, compressType string) error {
 	return nil
 }
 
-func (c *client) Post(url string, contentType string, body []byte, compressType string) (resp *http.Response, err error) {
-	headers := make(map[string]string, 10)
+func (c *client) Post(
+	url string,
+	contentType string,
+	body []byte,
+	compressType string,
+) (resp *http.Response, err error) {
+	headers := make(map[string]string)
 
 	if compressType == "gzip" {
 		body, err = compress(body)
@@ -110,16 +121,21 @@ func (c *client) Post(url string, contentType string, body []byte, compressType 
 	headers["Content-Type"] = contentType
 
 	bodyReader := bytes.NewReader(body)
-	req, err := http.NewRequest("POST", url, bodyReader)
+	req, err := http.NewRequest(http.MethodPost, url, bodyReader)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
 	for h, v := range headers {
 		req.Header.Set(h, v)
 	}
-	return c.client.Do(req)
+
+	resp, err = c.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to send request: %w", err)
+	}
+	return resp, nil
 }
 
 func compress(data []byte) ([]byte, error) {
@@ -127,11 +143,11 @@ func compress(data []byte) ([]byte, error) {
 	w := gzip.NewWriter(&b)
 	_, err := w.Write(data)
 	if err != nil {
-		return nil, fmt.Errorf("failed write data to compress buffer: %v", err)
+		return nil, fmt.Errorf("failed write data to compress buffer: %w", err)
 	}
 	err = w.Close()
 	if err != nil {
-		return nil, fmt.Errorf("failed compress data: %v", err)
+		return nil, fmt.Errorf("failed compress data: %w", err)
 	}
 	return b.Bytes(), nil
 }

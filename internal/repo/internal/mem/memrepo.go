@@ -6,6 +6,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	countGaugeMetrics   int = 27
+	countCounterMetrics int = 1
+)
+
 type Metrics struct {
 	GaugeMetrics   map[string]*models.GaugeMetric   `json:"gauge_metrics"`
 	CounterMetrics map[string]*models.CounterMetric `json:"counter_metrics"`
@@ -66,8 +71,8 @@ func (r *InMemoryRepo) UpdateGaugeMetric(name string, value float64) error {
 }
 
 func (r *InMemoryRepo) GetAllMetrics() ([]models.GaugeMetric, []models.CounterMetric) {
-	gaugeMetrics := make([]models.GaugeMetric, 0, 26)
-	counterMetrics := make([]models.CounterMetric, 0, 1)
+	gaugeMetrics := make([]models.GaugeMetric, 0, countGaugeMetrics)
+	counterMetrics := make([]models.CounterMetric, 0, countCounterMetrics)
 	for _, gMetric := range r.m.GaugeMetrics {
 		gaugeMetrics = append(gaugeMetrics, *gMetric)
 	}

@@ -1,10 +1,11 @@
 package repo
 
 import (
+	"time"
+
 	"github.com/NStegura/metrics/internal/repo/internal/mem"
 	"github.com/NStegura/metrics/internal/repo/models"
 	"github.com/sirupsen/logrus"
-	"time"
 )
 
 type Repository interface {
@@ -25,7 +26,6 @@ func New(
 	restore bool,
 	logger *logrus.Logger,
 ) Repository {
-
 	if restore {
 		logger.Info("Init mem repo with backup")
 		return mem.NewBackupRepo(storeInterval, fileStoragePath, logger)

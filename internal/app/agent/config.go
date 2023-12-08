@@ -7,19 +7,26 @@ import (
 	"time"
 )
 
+const (
+	defaultHTTPAddr       string        = ":8080"
+	defaultLogLevel       string        = "debug"
+	defaultReportInterval time.Duration = 10
+	defaultPollInterval   time.Duration = 2
+)
+
 type Config struct {
 	HTTPAddr       string
+	LogLevel       string
 	ReportInterval time.Duration
 	PollInterval   time.Duration
-	LogLevel       string
 }
 
 func NewConfig() *Config {
 	return &Config{
-		HTTPAddr:       ":8080",
-		ReportInterval: 10,
-		PollInterval:   2,
-		LogLevel:       "debug",
+		HTTPAddr:       defaultHTTPAddr,
+		ReportInterval: defaultReportInterval,
+		PollInterval:   defaultPollInterval,
+		LogLevel:       defaultLogLevel,
 	}
 }
 
@@ -31,13 +38,13 @@ func (c *Config) ParseFlags() (err error) {
 	flag.IntVar(
 		&reportIntervalIn,
 		"r",
-		10,
+		int(defaultReportInterval),
 		"frequency of sending metrics to the server",
 	)
 	flag.IntVar(
 		&pollIntervalIn,
 		"p",
-		2,
+		int(defaultPollInterval),
 		"frequency of polling metrics from the package",
 	)
 	flag.Parse()

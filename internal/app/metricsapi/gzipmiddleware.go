@@ -2,6 +2,7 @@ package metricsapi
 
 import (
 	"compress/gzip"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -24,18 +25,26 @@ func (c *compressWriter) Header() http.Header {
 }
 
 func (c *compressWriter) Write(p []byte) (int, error) {
-	return c.zw.Write(p)
+	count, err := c.zw.Write(p)
+	if err != nil {
+		return 0, fmt.Errorf("failed to write comperessed resp: %w", err)
+	}
+	return count, nil
 }
 
 func (c *compressWriter) WriteHeader(statusCode int) {
-	if statusCode < 300 {
+	if statusCode < http.StatusMultipleChoices {
 		c.w.Header().Set("Content-Encoding", "gzip")
 	}
 	c.w.WriteHeader(statusCode)
 }
 
 func (c *compressWriter) Close() error {
-	return c.zw.Close()
+	err := c.zw.Close()
+	if err != nil {
+		return fmt.Errorf("failed to close writer %w", err)
+	}
+	return nil
 }
 
 type compressReader struct {
@@ -46,7 +55,7 @@ type compressReader struct {
 func newCompressReader(r io.ReadCloser) (*compressReader, error) {
 	zr, err := gzip.NewReader(r)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to init gzip reader %w", err)
 	}
 
 	return &compressReader{
@@ -56,14 +65,21 @@ func newCompressReader(r io.ReadCloser) (*compressReader, error) {
 }
 
 func (c compressReader) Read(p []byte) (n int, err error) {
-	return c.zr.Read(p)
+	count, err := c.zr.Read(p)
+	if err != nil {
+		return 0, fmt.Errorf("failed to read %w", err)
+	}
+	return count, nil
 }
 
 func (c *compressReader) Close() error {
 	if err := c.r.Close(); err != nil {
-		return err
+		return fmt.Errorf("failed to close io reader %w", err)
 	}
-	return c.zr.Close()
+	if err := c.zr.Close(); err != nil {
+		return fmt.Errorf("failed to close gzip reader %w", err)
+	}
+	return nil
 }
 
 func (s *APIServer) gzipMiddleware(h http.Handler) http.Handler {
@@ -75,8 +91,11 @@ func (s *APIServer) gzipMiddleware(h http.Handler) http.Handler {
 		if supportsGzip {
 			cw := newCompressWriter(w)
 			ow = cw
-
-			defer cw.Close()
+			defer func() {
+				if err := cw.Close(); err != nil {
+					s.logger.Error(err)
+				}
+			}()
 		}
 
 		contentEncoding := r.Header.Get("Content-Encoding")
@@ -88,7 +107,11 @@ func (s *APIServer) gzipMiddleware(h http.Handler) http.Handler {
 				return
 			}
 			r.Body = cr
-			defer cr.Close()
+			defer func() {
+				if err := cr.Close(); err != nil {
+					s.logger.Error(err)
+				}
+			}()
 		}
 		h.ServeHTTP(ow, r)
 	})

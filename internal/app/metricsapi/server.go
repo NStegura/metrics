@@ -4,14 +4,31 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+	"strconv"
+	"strings"
+
 	"github.com/NStegura/metrics/internal/app/metricsapi/models"
 	blModels "github.com/NStegura/metrics/internal/business/models"
 	"github.com/NStegura/metrics/internal/customerrors"
 	"github.com/go-chi/chi/v5"
 	"github.com/sirupsen/logrus"
-	"net/http"
-	"strconv"
-	"strings"
+)
+
+type contentType string
+type URLParam string
+type metricType string
+
+const (
+	contType string = "Content-Type"
+
+	textHTML contentType = "text/html"
+
+	mName  URLParam = "mName"
+	mValue URLParam = "mValue"
+
+	gauge   metricType = "gauge"
+	counter metricType = "counter"
 )
 
 type APIServer struct {
@@ -35,7 +52,10 @@ func (s *APIServer) Start() error {
 	s.configRouter()
 
 	s.logger.Info("starting APIServer")
-	return http.ListenAndServe(s.config.BindAddr, s.router)
+	if err := http.ListenAndServe(s.config.BindAddr, s.router); err != nil {
+		return fmt.Errorf("failed to start server: %w", err)
+	}
+	return nil
 }
 
 func (s *APIServer) configRouter() {
@@ -79,20 +99,22 @@ func (s *APIServer) getAllMetrics() http.HandlerFunc {
 		for _, m := range cms {
 			sb.WriteString(fmt.Sprintf("%s: %v\r\n", m.Name, m.Value))
 		}
-		w.Header().Set("Content-Type", "text/html")
+		w.Header().Set(contType, string(textHTML))
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(sb.String()))
+		if _, err := w.Write([]byte(sb.String())); err != nil {
+			s.logger.Error(err)
+		}
 	}
 }
 
 func (s *APIServer) getCounterMetric() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		mName := chi.URLParam(r, "mName")
-		if mName == "" {
+		mn := chi.URLParam(r, string(mName))
+		if mn == "" {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
-		metric, err := s.bll.GetCounterMetric(mName)
+		metric, err := s.bll.GetCounterMetric(mn)
 		if err != nil {
 			if errors.Is(err, customerrors.ErrNotFound) {
 				w.WriteHeader(http.StatusNotFound)
@@ -101,18 +123,20 @@ func (s *APIServer) getCounterMetric() http.HandlerFunc {
 			w.WriteHeader(http.StatusUnprocessableEntity)
 			return
 		}
-		w.Header().Set("Content-Type", "text/html")
+		w.Header().Set(contType, string(textHTML))
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(strconv.FormatInt(metric, 10)))
+		if _, err := w.Write([]byte(strconv.FormatInt(metric, 10))); err != nil {
+			s.logger.Error(err)
+		}
 	}
 }
 
 func (s *APIServer) updateCounterMetric() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		mName := chi.URLParam(r, "mName")
-		mValue := chi.URLParam(r, "mValue")
+		mn := chi.URLParam(r, string(mName))
+		mv := chi.URLParam(r, string(mValue))
 
-		m, err := parseMetric(r.URL.Path, "counter", mName, mValue)
+		m, err := parseMetric(r.URL.Path, string(counter), mn, mv)
 
 		if errors.As(err, &customerrors.ParseURLError{URL: r.URL.Path}) {
 			w.WriteHeader(http.StatusNotFound)
@@ -135,12 +159,12 @@ func (s *APIServer) updateCounterMetric() http.HandlerFunc {
 
 func (s *APIServer) getGaugeMetric() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		mName := chi.URLParam(r, "mName")
-		if mName == "" {
+		mn := chi.URLParam(r, string(mName))
+		if mn == "" {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
-		metric, err := s.bll.GetGaugeMetric(mName)
+		metric, err := s.bll.GetGaugeMetric(mn)
 		if err != nil {
 			if errors.Is(err, customerrors.ErrNotFound) {
 				w.WriteHeader(http.StatusNotFound)
@@ -149,19 +173,20 @@ func (s *APIServer) getGaugeMetric() http.HandlerFunc {
 			w.WriteHeader(http.StatusUnprocessableEntity)
 			return
 		}
-		w.Header().Set("Content-Type", "text/html")
+		w.Header().Set(contType, string(textHTML))
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(fmt.Sprintf("%v", metric)))
+		if _, err := w.Write([]byte(fmt.Sprintf("%v", metric))); err != nil {
+			s.logger.Error(err)
+		}
 	}
 }
 
 func (s *APIServer) updateGaugeMetric() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		mn := chi.URLParam(r, string(mName))
+		mv := chi.URLParam(r, string(mValue))
 
-		mName := chi.URLParam(r, "mName")
-		mValue := chi.URLParam(r, "mValue")
-
-		m, err := parseMetric(r.URL.Path, "gauge", mName, mValue)
+		m, err := parseMetric(r.URL.Path, string(gauge), mn, mv)
 
 		if errors.As(err, &customerrors.ParseURLError{URL: r.URL.Path}) {
 			w.WriteHeader(http.StatusNotFound)
@@ -192,7 +217,7 @@ func (s *APIServer) updateMetric() http.HandlerFunc {
 		}
 
 		switch metric.MType {
-		case "gauge":
+		case string(gauge):
 			if metric.Value == nil {
 				http.Error(w, "metric value null", http.StatusBadRequest)
 				return
@@ -205,7 +230,7 @@ func (s *APIServer) updateMetric() http.HandlerFunc {
 				w.WriteHeader(http.StatusUnprocessableEntity)
 				return
 			}
-		case "counter":
+		case string(counter):
 			if metric.Delta == nil {
 				http.Error(w, "metric value null", http.StatusBadRequest)
 				return
@@ -236,7 +261,7 @@ func (s *APIServer) getMetric() http.HandlerFunc {
 		}
 
 		switch metric.MType {
-		case "gauge":
+		case string(gauge):
 			gm, err := s.bll.GetGaugeMetric(metric.ID)
 			if err != nil {
 				if errors.Is(err, customerrors.ErrNotFound) {
@@ -247,8 +272,8 @@ func (s *APIServer) getMetric() http.HandlerFunc {
 				return
 			}
 			metric.Value = &gm
-			WriteJSONResp(metric, w)
-		case "counter":
+			s.WriteJSONResp(metric, w)
+		case string(counter):
 			cm, err := s.bll.GetCounterMetric(metric.ID)
 			if err != nil {
 				if errors.Is(err, customerrors.ErrNotFound) {
@@ -259,7 +284,7 @@ func (s *APIServer) getMetric() http.HandlerFunc {
 				return
 			}
 			metric.Delta = &cm
-			WriteJSONResp(metric, w)
+			s.WriteJSONResp(metric, w)
 		default:
 			http.Error(w, "unknown metric type", http.StatusBadRequest)
 			return
@@ -267,14 +292,16 @@ func (s *APIServer) getMetric() http.HandlerFunc {
 	}
 }
 
-func WriteJSONResp(resp any, w http.ResponseWriter) {
+func (s *APIServer) WriteJSONResp(resp any, w http.ResponseWriter) {
 	jsonResp, err := json.Marshal(resp)
 	if err != nil {
 		w.WriteHeader(http.StatusUnprocessableEntity)
 	}
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(contType, "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write(jsonResp)
+	if _, err := w.Write(jsonResp); err != nil {
+		s.logger.Error(err)
+	}
 }
 
 func parseMetric(url string, mtype string, mName string, mValue string) (metric models.Metric, err error) {

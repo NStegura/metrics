@@ -1,24 +1,30 @@
 package metricsapi
 
 import (
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
 	"github.com/NStegura/metrics/internal/business"
 	"github.com/NStegura/metrics/internal/repo"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"io"
-	"net/http"
-	"net/http/httptest"
-	"testing"
 )
 
 func testRequest(t *testing.T, ts *httptest.Server, method, path string) (*http.Response, string) {
+	t.Helper()
 	req, err := http.NewRequest(method, ts.URL+path, nil)
 	require.NoError(t, err)
 
 	resp, err := ts.Client().Do(req)
 	require.NoError(t, err)
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			t.Log(err)
+		}
+	}()
 
 	respBody, err := io.ReadAll(resp.Body)
 	require.NoError(t, err)
@@ -38,8 +44,7 @@ func TestUpdateGaugeMetricHandler(t *testing.T) {
 	defer ts.Close()
 
 	type want struct {
-		contentType string
-		statusCode  int
+		statusCode int
 	}
 
 	tests := []struct {
@@ -75,7 +80,11 @@ func TestUpdateGaugeMetricHandler(t *testing.T) {
 	}
 	for _, v := range tests {
 		resp, _ := testRequest(t, ts, "POST", v.url)
-		defer resp.Body.Close()
+		defer func() {
+			if err := resp.Body.Close(); err != nil {
+				t.Log(err)
+			}
+		}()
 		assert.Equal(t, v.want.statusCode, resp.StatusCode)
 	}
 }
