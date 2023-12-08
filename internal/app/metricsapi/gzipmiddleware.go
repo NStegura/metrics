@@ -2,6 +2,7 @@ package metricsapi
 
 import (
 	"compress/gzip"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -40,8 +41,7 @@ func (c *compressWriter) WriteHeader(statusCode int) {
 }
 
 func (c *compressWriter) Close() error {
-	err := c.zw.Close()
-	if err != nil {
+	if err := c.zw.Close(); err != nil {
 		return fmt.Errorf("failed to close writer %w", err)
 	}
 	return nil
@@ -67,6 +67,9 @@ func newCompressReader(r io.ReadCloser) (*compressReader, error) {
 func (c compressReader) Read(p []byte) (n int, err error) {
 	count, err := c.zr.Read(p)
 	if err != nil {
+		if errors.Is(err, io.EOF) {
+			return count, io.EOF
+		}
 		return 0, fmt.Errorf("failed to read %w", err)
 	}
 	return count, nil
