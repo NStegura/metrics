@@ -1,13 +1,13 @@
 package models
 
 type GaugeMetric struct {
-	Name  string
-	Type  string
-	Value float64
+	Name  string  `json:"name"`
+	Type  string  `json:"type"`
+	Value float64 `json:"value"`
 }
 
 type CounterMetric struct {
-	Name  string
-	Type  string
-	Value int64
+	Name  string `json:"name"`
+	Type  string `json:"type"`
+	Value int64  `json:"value"`
 }

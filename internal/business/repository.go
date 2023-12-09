@@ -10,5 +10,4 @@ type Repository interface {
 	CreateGaugeMetric(name string, mType string, value float64)
 	UpdateGaugeMetric(name string, value float64) error
 	GetAllMetrics() ([]models.GaugeMetric, []models.CounterMetric)
-	LogRepo()
 }

@@ -1,16 +1,18 @@
 package main
 
 import (
+	"fmt"
+	"log"
+
 	"github.com/NStegura/metrics/internal/app/agent"
 	"github.com/sirupsen/logrus"
-	"log"
 )
 
 func configureLogger(config *agent.Config) (*logrus.Logger, error) {
 	logger := logrus.New()
 	level, err := logrus.ParseLevel(config.LogLevel)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse log level: %w", err)
 	}
 
 	logger.SetLevel(level)
