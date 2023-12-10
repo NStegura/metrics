@@ -1,12 +1,14 @@
 package metricsapi
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/NStegura/metrics/internal/app/metricsapi/models"
 	blModels "github.com/NStegura/metrics/internal/business/models"
@@ -93,7 +95,7 @@ func (s *APIServer) configRouter() {
 func (s *APIServer) getAllMetrics() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var sb strings.Builder
-		gms, cms := s.bll.GetAllMetrics(r.Context())
+		gms, cms := s.bll.GetAllMetrics(timeoutContext(r, 1))
 
 		for _, m := range gms {
 			sb.WriteString(fmt.Sprintf("%s: %v\r\n", m.Name, m.Value))
@@ -116,7 +118,7 @@ func (s *APIServer) getCounterMetric() http.HandlerFunc {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
-		metric, err := s.bll.GetCounterMetric(r.Context(), mn)
+		metric, err := s.bll.GetCounterMetric(timeoutContext(r, 1), mn)
 		if err != nil {
 			if errors.Is(err, customerrors.ErrNotFound) {
 				w.WriteHeader(http.StatusNotFound)
@@ -150,7 +152,7 @@ func (s *APIServer) updateCounterMetric() http.HandlerFunc {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		err = s.bll.UpdateCounterMetric(r.Context(), blModels.CounterMetric(cm))
+		err = s.bll.UpdateCounterMetric(timeoutContext(r, 1), blModels.CounterMetric(cm))
 		if err != nil {
 			w.WriteHeader(http.StatusUnprocessableEntity)
 			return
@@ -166,7 +168,7 @@ func (s *APIServer) getGaugeMetric() http.HandlerFunc {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
-		metric, err := s.bll.GetGaugeMetric(r.Context(), mn)
+		metric, err := s.bll.GetGaugeMetric(timeoutContext(r, 1), mn)
 		if err != nil {
 			if errors.Is(err, customerrors.ErrNotFound) {
 				w.WriteHeader(http.StatusNotFound)
@@ -200,7 +202,7 @@ func (s *APIServer) updateGaugeMetric() http.HandlerFunc {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		err = s.bll.UpdateGaugeMetric(r.Context(), blModels.GaugeMetric(gm))
+		err = s.bll.UpdateGaugeMetric(timeoutContext(r, 1), blModels.GaugeMetric(gm))
 		if err != nil {
 			w.WriteHeader(http.StatusUnprocessableEntity)
 			return
@@ -225,7 +227,7 @@ func (s *APIServer) updateMetric() http.HandlerFunc {
 				return
 			}
 			err := s.bll.UpdateGaugeMetric(
-				r.Context(),
+				timeoutContext(r, 1),
 				blModels.GaugeMetric{
 					Name: metric.ID, Type: metric.MType, Value: *metric.Value,
 				})
@@ -239,7 +241,7 @@ func (s *APIServer) updateMetric() http.HandlerFunc {
 				return
 			}
 			err := s.bll.UpdateCounterMetric(
-				r.Context(),
+				timeoutContext(r, 1),
 				blModels.CounterMetric{
 					Name: metric.ID, Type: metric.MType, Value: *metric.Delta,
 				})
@@ -266,7 +268,7 @@ func (s *APIServer) getMetric() http.HandlerFunc {
 
 		switch metric.MType {
 		case string(gauge):
-			gm, err := s.bll.GetGaugeMetric(r.Context(), metric.ID)
+			gm, err := s.bll.GetGaugeMetric(timeoutContext(r, 1), metric.ID)
 			if err != nil {
 				if errors.Is(err, customerrors.ErrNotFound) {
 					w.WriteHeader(http.StatusNotFound)
@@ -278,7 +280,7 @@ func (s *APIServer) getMetric() http.HandlerFunc {
 			metric.Value = &gm
 			s.writeJSONResp(metric, w)
 		case string(counter):
-			cm, err := s.bll.GetCounterMetric(r.Context(), metric.ID)
+			cm, err := s.bll.GetCounterMetric(timeoutContext(r, 1), metric.ID)
 			if err != nil {
 				if errors.Is(err, customerrors.ErrNotFound) {
 					w.WriteHeader(http.StatusNotFound)
@@ -331,4 +333,10 @@ func parseMetric(url string, mtype string, mName string, mValue string) (metric 
 		Type:  mtype,
 		Value: mValue,
 	}, nil
+}
+
+func timeoutContext(r *http.Request, duration time.Duration) context.Context {
+	ctx, cancel := context.WithTimeout(r.Context(), duration*time.Second)
+	defer cancel()
+	return ctx
 }

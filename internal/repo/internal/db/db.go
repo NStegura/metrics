@@ -27,50 +27,50 @@ func New(ctx context.Context, dsn string, logger *logrus.Logger) (*DB, error) {
 }
 
 func (db *DB) GetCounterMetric(ctx context.Context, name string) (cm models.CounterMetric, err error) {
-	db.logger.Debugf("GetCounterMetric ctx %s, name %s", ctx, name)
+	db.logger.Debugf("GetCounterMetric name %s", name)
 	return cm, nil
 }
 
 func (db *DB) CreateCounterMetric(ctx context.Context, name string, mType string, value int64) {
-	db.logger.Debugf("CreateCounterMetric ctx %s, name %s, mtype %s, value %v", ctx, name, mType, value)
+	db.logger.Debugf("CreateCounterMetric name %s, mtype %s, value %v", name, mType, value)
 }
 
 func (db *DB) UpdateCounterMetric(ctx context.Context, name string, value int64) error {
-	db.logger.Debugf("UpdateCounterMetric ctx %s, name %s, value %v", ctx, name, value)
+	db.logger.Debugf("UpdateCounterMetric name %s, value %v", name, value)
 	return nil
 }
 
 func (db *DB) GetGaugeMetric(ctx context.Context, name string) (gm models.GaugeMetric, err error) {
-	db.logger.Debugf("GetGaugeMetric ctx %s, name %s", ctx, name)
+	db.logger.Debugf("GetGaugeMetric name %s", name)
 	return gm, err
 }
 
 func (db *DB) CreateGaugeMetric(ctx context.Context, name string, mType string, value float64) {
-	db.logger.Debugf("CreateGaugeMetric ctx %s, name %s, mtype %s, value %v", ctx, name, mType, value)
+	db.logger.Debugf("CreateGaugeMetric name %s, mtype %s, value %v", name, mType, value)
 }
 
 func (db *DB) UpdateGaugeMetric(ctx context.Context, name string, value float64) error {
-	db.logger.Debugf("UpdateGaugeMetric ctx %s, name %s, value %v", ctx, name, value)
+	db.logger.Debugf("UpdateGaugeMetric name %s, value %v", name, value)
 	return nil
 }
 
 func (db *DB) GetAllMetrics(ctx context.Context) (gms []models.GaugeMetric, cms []models.CounterMetric) {
-	db.logger.Debugf("GetAllMetrics ctx %s", ctx)
+	db.logger.Debug("GetAllMetrics")
 	return gms, cms
 }
 
 func (db *DB) Init(ctx context.Context) error {
-	db.logger.Debugf("db init with ctx %s", ctx)
+	db.logger.Debug("db init")
 	return nil
 }
 
 func (db *DB) Shutdown(ctx context.Context) {
-	db.logger.Debugf("db shutdown with ctx %s", ctx)
+	db.logger.Debug("db shutdown")
 	db.pool.Close()
 }
 
 func (db *DB) Ping(ctx context.Context) error {
-	db.logger.Debugf("Ping ctx, %s", ctx)
+	db.logger.Debug("Ping db")
 	err := db.pool.Ping(ctx)
 	if err != nil {
 		return fmt.Errorf("DB ping eror, %w", err)
