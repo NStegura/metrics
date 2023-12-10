@@ -51,7 +51,7 @@ func New(config *Config, bll Bll, logger *logrus.Logger) *APIServer {
 func (s *APIServer) Start() error {
 	s.configRouter()
 
-	s.logger.Info("starting APIServer")
+	s.logger.Infof("starting APIServer %s", s.config.BindAddr)
 	if err := http.ListenAndServe(s.config.BindAddr, s.router); err != nil {
 		return fmt.Errorf("failed to start server: %w", err)
 	}

@@ -15,6 +15,7 @@ type Config struct {
 	BindAddr        string
 	LogLevel        string
 	FileStoragePath string
+	DatabaseDSN     string
 	StoreInterval   time.Duration
 	Restore         bool
 }
@@ -23,8 +24,9 @@ func NewConfig() *Config {
 	return &Config{
 		BindAddr:        ":8080",
 		LogLevel:        "debug",
-		StoreInterval:   defaultStoreInerval,
 		FileStoragePath: "/tmp/metrics-db.json",
+		DatabaseDSN:     "",
+		StoreInterval:   defaultStoreInerval,
 		Restore:         false,
 	}
 }
@@ -40,11 +42,24 @@ func (c *Config) ParseFlags() (err error) {
 		"frequency of saving metrics to dump",
 	)
 	flag.StringVar(&c.FileStoragePath, "f", "/tmp/metrics-db.json", "storage path")
+	flag.StringVar(&c.DatabaseDSN, "d", "", "database dsn")
 	flag.BoolVar(&c.Restore, "r", true, "load metrics")
 	flag.Parse()
 
 	if envRunAddr, ok := os.LookupEnv("ADDRESS"); ok {
 		c.BindAddr = envRunAddr
+	}
+
+	if envLogLevel, ok := os.LookupEnv("LOG_LEVEL"); ok {
+		c.LogLevel = envLogLevel
+	}
+
+	if fsp, ok := os.LookupEnv("FILE_STORAGE_PATH"); ok {
+		c.FileStoragePath = fsp
+	}
+
+	if dbDsn, ok := os.LookupEnv("DATABASE_DSN"); ok {
+		c.DatabaseDSN = dbDsn
 	}
 
 	if storeIn, ok := os.LookupEnv("STORE_INTERVAL"); ok {
