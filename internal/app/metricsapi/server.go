@@ -86,12 +86,14 @@ func (s *APIServer) configRouter() {
 			r.Post(`/{mName}/{mValue}`, s.updateCounterMetric())
 		})
 	})
+
+	s.router.Get(`/ping`, s.ping())
 }
 
 func (s *APIServer) getAllMetrics() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var sb strings.Builder
-		gms, cms := s.bll.GetAllMetrics()
+		gms, cms := s.bll.GetAllMetrics(r.Context())
 
 		for _, m := range gms {
 			sb.WriteString(fmt.Sprintf("%s: %v\r\n", m.Name, m.Value))
@@ -114,7 +116,7 @@ func (s *APIServer) getCounterMetric() http.HandlerFunc {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
-		metric, err := s.bll.GetCounterMetric(mn)
+		metric, err := s.bll.GetCounterMetric(r.Context(), mn)
 		if err != nil {
 			if errors.Is(err, customerrors.ErrNotFound) {
 				w.WriteHeader(http.StatusNotFound)
@@ -148,7 +150,7 @@ func (s *APIServer) updateCounterMetric() http.HandlerFunc {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		err = s.bll.UpdateCounterMetric(blModels.CounterMetric(cm))
+		err = s.bll.UpdateCounterMetric(r.Context(), blModels.CounterMetric(cm))
 		if err != nil {
 			w.WriteHeader(http.StatusUnprocessableEntity)
 			return
@@ -164,7 +166,7 @@ func (s *APIServer) getGaugeMetric() http.HandlerFunc {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
-		metric, err := s.bll.GetGaugeMetric(mn)
+		metric, err := s.bll.GetGaugeMetric(r.Context(), mn)
 		if err != nil {
 			if errors.Is(err, customerrors.ErrNotFound) {
 				w.WriteHeader(http.StatusNotFound)
@@ -198,7 +200,7 @@ func (s *APIServer) updateGaugeMetric() http.HandlerFunc {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		err = s.bll.UpdateGaugeMetric(blModels.GaugeMetric(gm))
+		err = s.bll.UpdateGaugeMetric(r.Context(), blModels.GaugeMetric(gm))
 		if err != nil {
 			w.WriteHeader(http.StatusUnprocessableEntity)
 			return
@@ -223,6 +225,7 @@ func (s *APIServer) updateMetric() http.HandlerFunc {
 				return
 			}
 			err := s.bll.UpdateGaugeMetric(
+				r.Context(),
 				blModels.GaugeMetric{
 					Name: metric.ID, Type: metric.MType, Value: *metric.Value,
 				})
@@ -236,6 +239,7 @@ func (s *APIServer) updateMetric() http.HandlerFunc {
 				return
 			}
 			err := s.bll.UpdateCounterMetric(
+				r.Context(),
 				blModels.CounterMetric{
 					Name: metric.ID, Type: metric.MType, Value: *metric.Delta,
 				})
@@ -262,7 +266,7 @@ func (s *APIServer) getMetric() http.HandlerFunc {
 
 		switch metric.MType {
 		case string(gauge):
-			gm, err := s.bll.GetGaugeMetric(metric.ID)
+			gm, err := s.bll.GetGaugeMetric(r.Context(), metric.ID)
 			if err != nil {
 				if errors.Is(err, customerrors.ErrNotFound) {
 					w.WriteHeader(http.StatusNotFound)
@@ -272,9 +276,9 @@ func (s *APIServer) getMetric() http.HandlerFunc {
 				return
 			}
 			metric.Value = &gm
-			s.WriteJSONResp(metric, w)
+			s.writeJSONResp(metric, w)
 		case string(counter):
-			cm, err := s.bll.GetCounterMetric(metric.ID)
+			cm, err := s.bll.GetCounterMetric(r.Context(), metric.ID)
 			if err != nil {
 				if errors.Is(err, customerrors.ErrNotFound) {
 					w.WriteHeader(http.StatusNotFound)
@@ -284,7 +288,7 @@ func (s *APIServer) getMetric() http.HandlerFunc {
 				return
 			}
 			metric.Delta = &cm
-			s.WriteJSONResp(metric, w)
+			s.writeJSONResp(metric, w)
 		default:
 			http.Error(w, "unknown metric type", http.StatusBadRequest)
 			return
@@ -292,12 +296,24 @@ func (s *APIServer) getMetric() http.HandlerFunc {
 	}
 }
 
-func (s *APIServer) WriteJSONResp(resp any, w http.ResponseWriter) {
+func (s *APIServer) ping() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if err := s.bll.Ping(r.Context()); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}
+}
+
+func (s *APIServer) writeJSONResp(resp any, w http.ResponseWriter) {
+	w.Header().Set(contType, "application/json")
+
 	jsonResp, err := json.Marshal(resp)
 	if err != nil {
 		w.WriteHeader(http.StatusUnprocessableEntity)
+		return
 	}
-	w.Header().Set(contType, "application/json")
 	w.WriteHeader(http.StatusOK)
 	if _, err := w.Write(jsonResp); err != nil {
 		s.logger.Error(err)

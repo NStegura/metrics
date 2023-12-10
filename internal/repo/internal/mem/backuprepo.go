@@ -1,6 +1,7 @@
 package mem
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/fs"
@@ -28,17 +29,17 @@ func NewBackupRepo(
 	storeInterval time.Duration,
 	fileStoragePath string,
 	logger *logrus.Logger,
-) *BackupRepo {
+) (*BackupRepo, error) {
 	return &BackupRepo{
 		InMemoryRepo{m: nil, logger: logger},
 		fileStoragePath,
 		storeInterval,
 		storeInterval == 0,
-	}
+	}, nil
 }
 
-func (r *BackupRepo) CreateCounterMetric(name string, mType string, value int64) {
-	r.InMemoryRepo.CreateCounterMetric(name, mType, value)
+func (r *BackupRepo) CreateCounterMetric(ctx context.Context, name string, mType string, value int64) {
+	r.InMemoryRepo.CreateCounterMetric(ctx, name, mType, value)
 	if r.synchronously {
 		err := r.makeBackup()
 		if err != nil {
@@ -47,8 +48,8 @@ func (r *BackupRepo) CreateCounterMetric(name string, mType string, value int64)
 	}
 }
 
-func (r *BackupRepo) UpdateCounterMetric(name string, value int64) error {
-	err := r.InMemoryRepo.UpdateCounterMetric(name, value)
+func (r *BackupRepo) UpdateCounterMetric(ctx context.Context, name string, value int64) error {
+	err := r.InMemoryRepo.UpdateCounterMetric(ctx, name, value)
 	if err != nil {
 		return err
 	}
@@ -61,8 +62,8 @@ func (r *BackupRepo) UpdateCounterMetric(name string, value int64) error {
 	return nil
 }
 
-func (r *BackupRepo) CreateGaugeMetric(name string, mType string, value float64) {
-	r.InMemoryRepo.CreateGaugeMetric(name, mType, value)
+func (r *BackupRepo) CreateGaugeMetric(ctx context.Context, name string, mType string, value float64) {
+	r.InMemoryRepo.CreateGaugeMetric(ctx, name, mType, value)
 	if r.synchronously {
 		err := r.makeBackup()
 		if err != nil {
@@ -71,8 +72,8 @@ func (r *BackupRepo) CreateGaugeMetric(name string, mType string, value float64)
 	}
 }
 
-func (r *BackupRepo) UpdateGaugeMetric(name string, value float64) error {
-	err := r.InMemoryRepo.UpdateGaugeMetric(name, value)
+func (r *BackupRepo) UpdateGaugeMetric(ctx context.Context, name string, value float64) error {
+	err := r.InMemoryRepo.UpdateGaugeMetric(ctx, name, value)
 	if err != nil {
 		return err
 	}
@@ -85,8 +86,8 @@ func (r *BackupRepo) UpdateGaugeMetric(name string, value float64) error {
 	return nil
 }
 
-func (r *BackupRepo) Init() error {
-	err := r.InMemoryRepo.Init()
+func (r *BackupRepo) Init(ctx context.Context) error {
+	err := r.InMemoryRepo.Init(ctx)
 	if err != nil {
 		return err
 	}
@@ -107,7 +108,7 @@ func (r *BackupRepo) Init() error {
 	return nil
 }
 
-func (r *BackupRepo) Shutdown() {
+func (r *BackupRepo) Shutdown(ctx context.Context) {
 	r.logger.Info("Repo shutdown")
 	err := r.makeBackup()
 	if err != nil {

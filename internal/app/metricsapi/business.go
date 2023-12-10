@@ -1,11 +1,17 @@
 package metricsapi
 
-import blModels "github.com/NStegura/metrics/internal/business/models"
+import (
+	"context"
+
+	blModels "github.com/NStegura/metrics/internal/business/models"
+)
 
 type Bll interface {
-	GetGaugeMetric(string) (float64, error)
-	UpdateGaugeMetric(blModels.GaugeMetric) error
-	GetCounterMetric(string) (int64, error)
-	UpdateCounterMetric(blModels.CounterMetric) error
-	GetAllMetrics() ([]blModels.GaugeMetric, []blModels.CounterMetric)
+	GetGaugeMetric(context.Context, string) (float64, error)
+	UpdateGaugeMetric(context.Context, blModels.GaugeMetric) error
+	GetCounterMetric(context.Context, string) (int64, error)
+	UpdateCounterMetric(context.Context, blModels.CounterMetric) error
+	GetAllMetrics(context.Context) ([]blModels.GaugeMetric, []blModels.CounterMetric)
+
+	Ping(context.Context) error
 }
