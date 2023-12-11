@@ -30,6 +30,15 @@ buildagent: ## Build agent app
 rundb:
 	docker run --name metrics -e POSTGRES_USER=usr -e POSTGRES_PASSWORD=psswrd -e POSTGRES_DB=metrics -p 54323:5432 -d postgres:14.2
 
+.PHONY: migrate
+migrate:
+	goose -dir=internal/repo/internal/db/migrations postgres "host=localhost port=54323 user=usr password=psswrd dbname=metrics sslmode=disable" up
+
+.PHONY: rollbackmigrations
+rollbackmigrations:
+	goose -dir=internal/repo/internal/db/migrations postgres "host=localhost port=54323 user=usr password=psswrd dbname=metrics sslmode=disable" reset
+
+
 ## LINTERS
 GOLANGCI_LINT_CACHE?=/tmp/praktikum-golangci-lint-cache
 
