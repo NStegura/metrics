@@ -132,7 +132,7 @@ func (s *APIServer) updateAllMetrics() http.HandlerFunc {
 			switch metric.MType {
 			case string(gauge):
 				if metric.Value == nil {
-					http.Error(w, "metric value null", http.StatusBadRequest)
+					http.Error(w, "gauge metric value null", http.StatusBadRequest)
 					return
 				}
 				err := s.bll.UpdateGaugeMetric(
@@ -146,7 +146,7 @@ func (s *APIServer) updateAllMetrics() http.HandlerFunc {
 				}
 			case string(counter):
 				if metric.Delta == nil {
-					http.Error(w, "metric value null", http.StatusBadRequest)
+					http.Error(w, "counter metric value null", http.StatusBadRequest)
 					return
 				}
 				err := s.bll.UpdateCounterMetric(

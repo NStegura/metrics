@@ -7,17 +7,25 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 type client struct {
 	client *http.Client
+	logger *logrus.Logger
 	URL    string
 }
 
-func New(url string) *client {
+func New(
+	url string,
+	logger *logrus.Logger,
+) *client {
 	return &client{
 		client: &http.Client{},
 		URL:    fmt.Sprintf("http://%s", url),
+		logger: logger,
 	}
 }
 
@@ -131,11 +139,40 @@ func (c *client) Post(
 		req.Header.Set(h, v)
 	}
 
-	resp, err = c.client.Do(req)
+	resp, err = c.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
 	return resp, nil
+}
+
+func (c *client) Do(req *http.Request) (resp *http.Response, err error) {
+	resp, err = c.client.Do(req)
+	if err == nil {
+		return resp, nil
+	}
+
+	for _, backoff := range c.sheduleBackoffAttempts() {
+		time.Sleep(backoff)
+		c.logger.Warningf("Retrying in %v, Request error: %+v", backoff, err)
+		resp, err = c.client.Do(req)
+		if err == nil {
+			break
+		}
+	}
+
+	if err != nil {
+		return
+	}
+	return
+}
+
+func (c *client) sheduleBackoffAttempts() []time.Duration {
+	return []time.Duration{
+		1 * time.Second,
+		3 * time.Second,
+		5 * time.Second,
+	}
 }
 
 func compress(data []byte) ([]byte, error) {

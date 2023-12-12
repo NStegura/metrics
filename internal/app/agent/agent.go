@@ -65,7 +65,10 @@ func New(config *Config, logger *logrus.Logger) *Agent {
 }
 
 func (ag *Agent) Start() error {
-	metricsCli := metric.New(ag.config.HTTPAddr)
+	metricsCli := metric.New(
+		ag.config.HTTPAddr,
+		ag.logger,
+	)
 
 	var mu sync.Mutex
 	var metrics models.Metrics
