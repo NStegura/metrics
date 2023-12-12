@@ -3,6 +3,7 @@ package metric
 import (
 	"bytes"
 	"compress/gzip"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -110,6 +111,31 @@ func (c *client) UpdateMetric(jsonBody []byte, compressType string) error {
 	return nil
 }
 
+func (c *client) UpdateMetrics(metrics []Metrics, compressType string) error {
+	jsonBody, err := json.Marshal(metrics)
+	if err != nil {
+		return fmt.Errorf("failed to parse metrics, err %w", err)
+	}
+
+	resp, err := c.Post(
+		fmt.Sprintf("%s/updates/", c.URL),
+		"application/json",
+		jsonBody,
+		compressType,
+	)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+
+	if resp.StatusCode != http.StatusOK {
+		return NewRequestError(resp)
+	}
+	return nil
+}
+
 func (c *client) Post(
 	url string,
 	contentType string,
@@ -147,7 +173,7 @@ func (c *client) Post(
 }
 
 func (c *client) Do(req *http.Request) (resp *http.Response, err error) {
-	resp, err = c.client.Do(req)
+	resp, err = c.requestLogger(req)
 	if err == nil {
 		return resp, nil
 	}
@@ -155,7 +181,7 @@ func (c *client) Do(req *http.Request) (resp *http.Response, err error) {
 	for _, backoff := range c.sheduleBackoffAttempts() {
 		time.Sleep(backoff)
 		c.logger.Warningf("Retrying in %v, Request error: %+v", backoff, err)
-		resp, err = c.client.Do(req)
+		resp, err = c.requestLogger(req)
 		if err == nil {
 			break
 		}
@@ -164,6 +190,29 @@ func (c *client) Do(req *http.Request) (resp *http.Response, err error) {
 	if err != nil {
 		return
 	}
+	return
+}
+
+func (c *client) requestLogger(req *http.Request) (resp *http.Response, err error) {
+	start := time.Now()
+	resp, err = c.client.Do(req)
+	duration := time.Since(start)
+
+	if err != nil {
+		c.logger.WithFields(logrus.Fields{
+			"uri":      req.URL.Path,
+			"method":   req.Method,
+			"duration": duration,
+			"err":      err,
+		}).Warning()
+		return
+	}
+	c.logger.WithFields(logrus.Fields{
+		"uri":      req.URL.Path,
+		"method":   req.Method,
+		"status":   resp.Status,
+		"duration": duration,
+	}).Info()
 	return
 }
 
