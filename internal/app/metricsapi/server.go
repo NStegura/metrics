@@ -32,7 +32,7 @@ const (
 	gauge   metricType = "gauge"
 	counter metricType = "counter"
 
-	timeout time.Duration = 1 * time.Second
+	timeout = 1 * time.Second
 )
 
 type APIServer struct {
@@ -67,6 +67,7 @@ func (s *APIServer) configRouter() {
 	s.router.Use(s.gzipMiddleware)
 
 	s.router.Get(`/`, s.getAllMetrics())
+	s.router.Post(`/updates`, s.updateAllMetrics())
 
 	s.router.Route(`/value`, func(r chi.Router) {
 		r.Post(`/`, s.getMetric())
@@ -113,6 +114,56 @@ func (s *APIServer) getAllMetrics() http.HandlerFunc {
 		if _, err := w.Write([]byte(sb.String())); err != nil {
 			s.logger.Error(err)
 		}
+	}
+}
+
+func (s *APIServer) updateAllMetrics() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(r.Context(), timeout)
+		defer cancel()
+
+		var metrics []models.Metrics
+
+		if err := json.NewDecoder(r.Body).Decode(&metrics); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		for _, metric := range metrics {
+			switch metric.MType {
+			case string(gauge):
+				if metric.Value == nil {
+					http.Error(w, "metric value null", http.StatusBadRequest)
+					return
+				}
+				err := s.bll.UpdateGaugeMetric(
+					ctx,
+					blModels.GaugeMetric{
+						Name: metric.ID, Type: metric.MType, Value: *metric.Value,
+					})
+				if err != nil {
+					w.WriteHeader(http.StatusUnprocessableEntity)
+					return
+				}
+			case string(counter):
+				if metric.Delta == nil {
+					http.Error(w, "metric value null", http.StatusBadRequest)
+					return
+				}
+				err := s.bll.UpdateCounterMetric(
+					ctx,
+					blModels.CounterMetric{
+						Name: metric.ID, Type: metric.MType, Value: *metric.Delta,
+					})
+				if err != nil {
+					w.WriteHeader(http.StatusUnprocessableEntity)
+					return
+				}
+			default:
+				http.Error(w, "unknown metric type", http.StatusBadRequest)
+				return
+			}
+		}
+		w.WriteHeader(http.StatusOK)
 	}
 }
 
