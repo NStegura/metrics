@@ -67,7 +67,7 @@ func (s *APIServer) configRouter() {
 	s.router.Use(s.gzipMiddleware)
 
 	s.router.Get(`/`, s.getAllMetrics())
-	s.router.Post(`/updates`, s.updateAllMetrics())
+	s.router.Post(`/updates/`, s.updateAllMetrics())
 
 	s.router.Route(`/value`, func(r chi.Router) {
 		r.Post(`/`, s.getMetric())
