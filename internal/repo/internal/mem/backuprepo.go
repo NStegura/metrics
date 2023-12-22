@@ -31,21 +31,29 @@ func NewBackupRepo(
 	logger *logrus.Logger,
 ) (*BackupRepo, error) {
 	return &BackupRepo{
-		InMemoryRepo{m: nil, logger: logger},
+		InMemoryRepo{
+			m: &Metrics{
+				map[string]*models.GaugeMetric{},
+				map[string]*models.CounterMetric{},
+			}, logger: logger},
 		fileStoragePath,
 		storeInterval,
 		storeInterval == 0,
 	}, nil
 }
 
-func (r *BackupRepo) CreateCounterMetric(ctx context.Context, name string, mType string, value int64) {
-	r.InMemoryRepo.CreateCounterMetric(ctx, name, mType, value)
+func (r *BackupRepo) CreateCounterMetric(ctx context.Context, name string, mType string, value int64) error {
+	err := r.InMemoryRepo.CreateCounterMetric(ctx, name, mType, value)
+	if err != nil {
+		return err
+	}
 	if r.synchronously {
 		err := r.makeBackup()
 		if err != nil {
 			r.logger.Warning(BackupError{err})
 		}
 	}
+	return nil
 }
 
 func (r *BackupRepo) UpdateCounterMetric(ctx context.Context, name string, value int64) error {
@@ -62,14 +70,18 @@ func (r *BackupRepo) UpdateCounterMetric(ctx context.Context, name string, value
 	return nil
 }
 
-func (r *BackupRepo) CreateGaugeMetric(ctx context.Context, name string, mType string, value float64) {
-	r.InMemoryRepo.CreateGaugeMetric(ctx, name, mType, value)
+func (r *BackupRepo) CreateGaugeMetric(ctx context.Context, name string, mType string, value float64) error {
+	err := r.InMemoryRepo.CreateGaugeMetric(ctx, name, mType, value)
+	if err != nil {
+		return err
+	}
 	if r.synchronously {
 		err := r.makeBackup()
 		if err != nil {
 			r.logger.Warning(BackupError{err})
 		}
 	}
+	return nil
 }
 
 func (r *BackupRepo) UpdateGaugeMetric(ctx context.Context, name string, value float64) error {
@@ -86,11 +98,7 @@ func (r *BackupRepo) UpdateGaugeMetric(ctx context.Context, name string, value f
 	return nil
 }
 
-func (r *BackupRepo) Init(ctx context.Context) error {
-	err := r.InMemoryRepo.Init(ctx)
-	if err != nil {
-		return err
-	}
+func (r *BackupRepo) LoadAndStartBackup(_ context.Context) error {
 	r.logger.Info("Init backup")
 
 	metrics, err := r.loadBackup(r.fileStoragePath)
@@ -108,7 +116,7 @@ func (r *BackupRepo) Init(ctx context.Context) error {
 	return nil
 }
 
-func (r *BackupRepo) Shutdown(ctx context.Context) {
+func (r *BackupRepo) Shutdown(_ context.Context) {
 	r.logger.Info("Repo shutdown")
 	err := r.makeBackup()
 	if err != nil {

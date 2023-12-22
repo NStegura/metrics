@@ -41,7 +41,10 @@ func (bll *bll) UpdateGaugeMetric(ctx context.Context, gmReq blModels.GaugeMetri
 	_, err = bll.repo.GetGaugeMetric(ctx, gmReq.Name)
 	if err != nil {
 		if errors.Is(err, customerrors.ErrNotFound) {
-			bll.repo.CreateGaugeMetric(ctx, gmReq.Name, gmReq.Type, gmReq.Value)
+			err := bll.repo.CreateGaugeMetric(ctx, gmReq.Name, gmReq.Type, gmReq.Value)
+			if err != nil {
+				return fmt.Errorf("create gauge metric failed, %w", err)
+			}
 			return nil
 		}
 		return fmt.Errorf("failed to get gauge metric, %w", err)
@@ -66,7 +69,10 @@ func (bll *bll) UpdateCounterMetric(ctx context.Context, cmReq blModels.CounterM
 	cm, err := bll.repo.GetCounterMetric(ctx, cmReq.Name)
 	if err != nil {
 		if errors.Is(err, customerrors.ErrNotFound) {
-			bll.repo.CreateCounterMetric(ctx, cmReq.Name, cmReq.Type, cmReq.Value)
+			err := bll.repo.CreateCounterMetric(ctx, cmReq.Name, cmReq.Type, cmReq.Value)
+			if err != nil {
+				return fmt.Errorf("create counter metric failed, %w", err)
+			}
 			return nil
 		}
 		return fmt.Errorf("failed to get counter metric, %w", err)

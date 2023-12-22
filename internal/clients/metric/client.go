@@ -62,7 +62,10 @@ func (c *client) UpdateGaugeMetric(name string, value float64, compressType stri
 		return err
 	}
 	defer func() {
-		_ = resp.Body.Close()
+		err = resp.Body.Close()
+		if err != nil {
+			c.logger.Error(err)
+		}
 	}()
 
 	if resp.StatusCode != http.StatusOK {
@@ -82,7 +85,10 @@ func (c *client) UpdateCounterMetric(name string, value int64, compressType stri
 		return err
 	}
 	defer func() {
-		_ = resp.Body.Close()
+		err = resp.Body.Close()
+		if err != nil {
+			c.logger.Error(err)
+		}
 	}()
 
 	if resp.StatusCode != http.StatusOK {
@@ -102,7 +108,10 @@ func (c *client) UpdateMetric(jsonBody []byte, compressType string) error {
 		return err
 	}
 	defer func() {
-		_ = resp.Body.Close()
+		err = resp.Body.Close()
+		if err != nil {
+			c.logger.Error(err)
+		}
 	}()
 
 	if resp.StatusCode != http.StatusOK {
@@ -114,7 +123,7 @@ func (c *client) UpdateMetric(jsonBody []byte, compressType string) error {
 func (c *client) UpdateMetrics(metrics []Metrics, compressType string) error {
 	jsonBody, err := json.Marshal(metrics)
 	if err != nil {
-		return fmt.Errorf("failed to parse metrics, err %w", err)
+		return fmt.Errorf("failed to decode metrics, err %w", err)
 	}
 
 	resp, err := c.Post(
@@ -127,7 +136,10 @@ func (c *client) UpdateMetrics(metrics []Metrics, compressType string) error {
 		return err
 	}
 	defer func() {
-		_ = resp.Body.Close()
+		err = resp.Body.Close()
+		if err != nil {
+			c.logger.Error(err)
+		}
 	}()
 
 	if resp.StatusCode != http.StatusOK {
@@ -165,23 +177,23 @@ func (c *client) Post(
 		req.Header.Set(h, v)
 	}
 
-	resp, err = c.Do(req)
+	resp, err = c.DoWithRetry(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
 	return resp, nil
 }
 
-func (c *client) Do(req *http.Request) (resp *http.Response, err error) {
-	resp, err = c.requestLogger(req)
+func (c *client) DoWithRetry(req *http.Request) (resp *http.Response, err error) {
+	resp, err = c.DoWithLog(req)
 	if err == nil {
 		return resp, nil
 	}
 
-	for _, backoff := range c.sheduleBackoffAttempts() {
+	for _, backoff := range c.scheduleBackoffAttempts() {
 		time.Sleep(backoff)
 		c.logger.Warningf("Retrying in %v, Request error: %+v", backoff, err)
-		resp, err = c.requestLogger(req)
+		resp, err = c.DoWithLog(req)
 		if err == nil {
 			break
 		}
@@ -193,7 +205,7 @@ func (c *client) Do(req *http.Request) (resp *http.Response, err error) {
 	return
 }
 
-func (c *client) requestLogger(req *http.Request) (resp *http.Response, err error) {
+func (c *client) DoWithLog(req *http.Request) (resp *http.Response, err error) {
 	start := time.Now()
 	resp, err = c.client.Do(req)
 	duration := time.Since(start)
@@ -216,7 +228,7 @@ func (c *client) requestLogger(req *http.Request) (resp *http.Response, err erro
 	return
 }
 
-func (c *client) sheduleBackoffAttempts() []time.Duration {
+func (c *client) scheduleBackoffAttempts() []time.Duration {
 	return []time.Duration{
 		1 * time.Second,
 		3 * time.Second,

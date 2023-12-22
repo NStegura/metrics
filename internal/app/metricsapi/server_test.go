@@ -36,8 +36,8 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string) (*http.
 func TestUpdateGaugeMetricHandler(t *testing.T) {
 	ctx := context.TODO()
 	l := logrus.New()
-	r, _ := repo.New(ctx, "", 100, "", false, l)
-	_ = r.Init(ctx)
+	r, err := repo.New(ctx, "", 100, "", false, l)
+	require.NoError(t, err)
 	businessLayer := business.New(r, l)
 	server := New(NewConfig(), businessLayer, l)
 	server.configRouter()

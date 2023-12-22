@@ -59,11 +59,6 @@ func runRest() error {
 		return fmt.Errorf("failed to create repo: %w", err)
 	}
 
-	err = db.Init(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to init repo: %w", err)
-	}
-
 	wg := &sync.WaitGroup{}
 	defer func() {
 		wg.Wait()

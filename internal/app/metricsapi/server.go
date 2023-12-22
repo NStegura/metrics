@@ -378,9 +378,11 @@ func (s *APIServer) ping() http.HandlerFunc {
 		defer cancel()
 
 		if err := s.bll.Ping(ctx); err != nil {
+			s.logger.Error(err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+
 		w.WriteHeader(http.StatusOK)
 	}
 }

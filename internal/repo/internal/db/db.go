@@ -36,7 +36,7 @@ func New(ctx context.Context, dsn string, logger *logrus.Logger) (*DB, error) {
 //go:embed migrations/*.sql
 var embedMigrations embed.FS
 
-func (db *DB) runMigrations() error {
+func (db *DB) RunMigrations() error {
 	goose.SetBaseFS(embedMigrations)
 
 	if err := goose.SetDialect(string(goose.DialectPostgres)); err != nil {
@@ -50,16 +50,7 @@ func (db *DB) runMigrations() error {
 	return nil
 }
 
-func (db *DB) Init(ctx context.Context) error {
-	db.logger.Debug("db init")
-	err := db.runMigrations()
-	if err != nil {
-		return fmt.Errorf("failed to run migrations, %w", err)
-	}
-	return nil
-}
-
-func (db *DB) Shutdown(ctx context.Context) {
+func (db *DB) Shutdown(_ context.Context) {
 	db.logger.Debug("db shutdown")
 	db.pool.Close()
 }
@@ -98,8 +89,14 @@ func (db *DB) GetCounterMetric(ctx context.Context, name string) (cm models.Coun
 	return cm, nil
 }
 
-func (db *DB) CreateCounterMetric(ctx context.Context, name string, mType string, value int64) {
+func (db *DB) CreateCounterMetric(ctx context.Context, name string, mType string, value int64) error {
 	db.logger.Debugf("CreateCounterMetric name %s, mtype %s, value %v", name, mType, value)
+
+	tx, err := db.pool.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return fmt.Errorf("BeginTx CreateCounterMetric failed, %w", err)
+	}
+
 	var ID int64
 
 	const query = `
@@ -108,28 +105,39 @@ func (db *DB) CreateCounterMetric(ctx context.Context, name string, mType string
 		WHERE name = $3
 		RETURNING "metric_actual".id;
 	`
-
-	err := db.pool.QueryRow(ctx, query,
+	err = tx.QueryRow(ctx, query,
 		name, value, mType,
 	).Scan(&ID)
 
 	if err != nil {
-		db.logger.Errorf("CreateCounterMetric failed, %s", err)
+		return fmt.Errorf("CreateCounterMetric failed, %w", err)
 	}
 	db.logger.Debugf("Save counter metric failed, %v", ID)
 
-	db.createHistoryMetric(ctx, mType, name, value)
+	db.createHistoryMetric(ctx, tx, mType, name, value)
+
+	err = tx.Commit(ctx)
+	if err != nil {
+		return fmt.Errorf("commit CreateCounterMetric failed, %w", err)
+	}
+	return nil
 }
 
 func (db *DB) UpdateCounterMetric(ctx context.Context, name string, value int64) error {
 	db.logger.Debugf("UpdateCounterMetric name %s, value %v", name, value)
+
+	tx, err := db.pool.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return fmt.Errorf("BeginTx UpdateCounterMetric failed, %w", err)
+	}
+
 	const query = `
 		UPDATE "metric_actual"
 		set	value = $2, updated_at = $3
 		where name = $1;
 	`
 
-	cmd, err := db.pool.Exec(ctx, query,
+	cmd, err := tx.Exec(ctx, query,
 		name,
 		value,
 		time.Now(),
@@ -142,7 +150,11 @@ func (db *DB) UpdateCounterMetric(ctx context.Context, name string, value int64)
 		return err
 	}
 
-	db.createHistoryMetric(ctx, "gauge", name, value)
+	db.createHistoryMetric(ctx, tx, "gauge", name, value)
+	err = tx.Commit(ctx)
+	if err != nil {
+		return fmt.Errorf("commit UpdateCounterMetric failed, %w", err)
+	}
 	return nil
 }
 
@@ -166,14 +178,20 @@ func (db *DB) GetGaugeMetric(ctx context.Context, name string) (gm models.GaugeM
 			err = customerrors.ErrNotFound
 			return
 		}
-		db.logger.Debugf("GetGaugeMetric failed, %s", err)
+		db.logger.Errorf("GetGaugeMetric failed, %s", err)
 		return gm, fmt.Errorf("get gauge metric failed, %w", err)
 	}
 	return gm, err
 }
 
-func (db *DB) CreateGaugeMetric(ctx context.Context, name string, mType string, value float64) {
+func (db *DB) CreateGaugeMetric(ctx context.Context, name string, mType string, value float64) error {
 	db.logger.Debugf("CreateGaugeMetric name %s, mtype %s, value %v", name, mType, value)
+
+	tx, err := db.pool.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return fmt.Errorf("BeginTx CreateGaugeMetric failed, %w", err)
+	}
+
 	var ID int64
 
 	const query = `
@@ -183,27 +201,38 @@ func (db *DB) CreateGaugeMetric(ctx context.Context, name string, mType string, 
 		RETURNING "metric_actual".id;
 	`
 
-	err := db.pool.QueryRow(ctx, query,
+	err = tx.QueryRow(ctx, query,
 		name, value, mType,
 	).Scan(&ID)
 
 	if err != nil {
-		db.logger.Errorf("CreateGaugeMetric failed, %s", err)
+		return fmt.Errorf("CreateGaugeMetric failed, %w", err)
 	}
 	db.logger.Debugf("Saved gauge metric, id %v", ID)
 
-	db.createHistoryMetric(ctx, mType, name, value)
+	db.createHistoryMetric(ctx, tx, mType, name, value)
+	err = tx.Commit(ctx)
+	if err != nil {
+		return fmt.Errorf("commit CreateGaugeMetric failed, %w", err)
+	}
+	return nil
 }
 
 func (db *DB) UpdateGaugeMetric(ctx context.Context, name string, value float64) error {
 	db.logger.Debugf("UpdateGaugeMetric name %s, value %v", name, value)
+
+	tx, err := db.pool.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return fmt.Errorf("BeginTx UpdateGaugeMetric failed, %w", err)
+	}
+
 	const query = `
 		UPDATE "metric_actual"
 		set	value = $2, updated_at = $3
 		where name = $1;
 	`
 
-	cmd, err := db.pool.Exec(ctx, query,
+	cmd, err := tx.Exec(ctx, query,
 		name,
 		value,
 		time.Now(),
@@ -215,7 +244,11 @@ func (db *DB) UpdateGaugeMetric(ctx context.Context, name string, value float64)
 		err = customerrors.ErrNotFound
 		return err
 	}
-	db.createHistoryMetric(ctx, "gauge", name, value)
+	db.createHistoryMetric(ctx, tx, "gauge", name, value)
+	err = tx.Commit(ctx)
+	if err != nil {
+		return fmt.Errorf("commit UpdateGaugeMetric failed, %w", err)
+	}
 	return nil
 }
 
@@ -269,7 +302,7 @@ func (db *DB) GetAllMetrics(ctx context.Context) (gms []models.GaugeMetric, cms 
 	return
 }
 
-func (db *DB) createHistoryMetric(ctx context.Context, mType string, name string, value interface{}) {
+func (db *DB) createHistoryMetric(ctx context.Context, tx pgx.Tx, mType string, name string, value interface{}) {
 	db.logger.Debugf("createHistoryMetric name %s, mtype %s, value %v", name, mType, value)
 	switch value.(type) {
 	case int64:
@@ -290,7 +323,7 @@ func (db *DB) createHistoryMetric(ctx context.Context, mType string, name string
 		RETURNING "metric_history".id;
 	`
 
-	err := db.pool.QueryRow(ctx, query,
+	err := tx.QueryRow(ctx, query,
 		name, value, mType,
 	).Scan(&ID)
 
