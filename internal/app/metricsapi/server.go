@@ -32,7 +32,7 @@ const (
 	gauge   metricType = "gauge"
 	counter metricType = "counter"
 
-	timeout = 1 * time.Second
+	timeout = 5 * time.Second
 )
 
 type APIServer struct {
@@ -100,8 +100,17 @@ func (s *APIServer) getAllMetrics() http.HandlerFunc {
 		ctx, cancel := context.WithTimeout(r.Context(), timeout)
 		defer cancel()
 
+		gms, cms, err := s.bll.GetAllMetrics(ctx)
+		if err != nil {
+			if errors.Is(err, customerrors.ErrNotFound) {
+				w.WriteHeader(http.StatusNotFound)
+				return
+			}
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			return
+		}
+
 		var sb strings.Builder
-		gms, cms := s.bll.GetAllMetrics(ctx)
 
 		for _, m := range gms {
 			sb.WriteString(fmt.Sprintf("%s: %v\r\n", m.Name, m.Value))

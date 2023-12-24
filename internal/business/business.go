@@ -83,11 +83,14 @@ func (bll *bll) UpdateCounterMetric(ctx context.Context, cmReq blModels.CounterM
 	return
 }
 
-func (bll *bll) GetAllMetrics(ctx context.Context) ([]blModels.GaugeMetric, []blModels.CounterMetric) {
+func (bll *bll) GetAllMetrics(ctx context.Context) ([]blModels.GaugeMetric, []blModels.CounterMetric, error) {
 	gaugeMetrics := make([]blModels.GaugeMetric, 0, countGaugeMetrics)
 	counterMetrics := make([]blModels.CounterMetric, 0, countCounterMetrics)
 
-	gms, cms := bll.repo.GetAllMetrics(ctx)
+	gms, cms, err := bll.repo.GetAllMetrics(ctx)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get all metrics, %w", err)
+	}
 
 	for _, gMetric := range gms {
 		gaugeMetrics = append(gaugeMetrics, blModels.GaugeMetric{
@@ -107,7 +110,7 @@ func (bll *bll) GetAllMetrics(ctx context.Context) ([]blModels.GaugeMetric, []bl
 		sort.Sort(blModels.ByName(gaugeMetrics))
 	}
 
-	return gaugeMetrics, counterMetrics
+	return gaugeMetrics, counterMetrics, nil
 }
 
 func (bll *bll) Ping(ctx context.Context) error {

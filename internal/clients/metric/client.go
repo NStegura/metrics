@@ -185,22 +185,18 @@ func (c *client) Post(
 }
 
 func (c *client) DoWithRetry(req *http.Request) (resp *http.Response, err error) {
-	resp, err = c.DoWithLog(req)
-	if err == nil {
-		return resp, nil
-	}
-
 	for _, backoff := range c.scheduleBackoffAttempts() {
-		time.Sleep(backoff)
-		c.logger.Warningf("Retrying in %v, Request error: %+v", backoff, err)
 		resp, err = c.DoWithLog(req)
-		if err == nil {
+		if err != nil {
+			c.logger.Warningf("Request failed %v, err: %+v", req, err)
+			return
+		}
+
+		if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 			break
 		}
-	}
-
-	if err != nil {
-		return
+		time.Sleep(backoff)
+		c.logger.Warningf("Retrying in %v, Request error: %+v", backoff, err)
 	}
 	return
 }

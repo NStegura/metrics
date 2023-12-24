@@ -11,7 +11,7 @@ type Bll interface {
 	UpdateGaugeMetric(context.Context, blModels.GaugeMetric) error
 	GetCounterMetric(context.Context, string) (int64, error)
 	UpdateCounterMetric(context.Context, blModels.CounterMetric) error
-	GetAllMetrics(context.Context) ([]blModels.GaugeMetric, []blModels.CounterMetric)
+	GetAllMetrics(context.Context) ([]blModels.GaugeMetric, []blModels.CounterMetric, error)
 
 	Ping(context.Context) error
 }

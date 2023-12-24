@@ -78,7 +78,7 @@ func (r *InMemoryRepo) UpdateGaugeMetric(_ context.Context, name string, value f
 	return nil
 }
 
-func (r *InMemoryRepo) GetAllMetrics(_ context.Context) ([]models.GaugeMetric, []models.CounterMetric) {
+func (r *InMemoryRepo) GetAllMetrics(_ context.Context) ([]models.GaugeMetric, []models.CounterMetric, error) {
 	gaugeMetrics := make([]models.GaugeMetric, 0, countGaugeMetrics)
 	counterMetrics := make([]models.CounterMetric, 0, countCounterMetrics)
 	for _, gMetric := range r.m.GaugeMetrics {
@@ -87,7 +87,7 @@ func (r *InMemoryRepo) GetAllMetrics(_ context.Context) ([]models.GaugeMetric, [
 	for _, cMetric := range r.m.CounterMetrics {
 		counterMetrics = append(counterMetrics, *cMetric)
 	}
-	return gaugeMetrics, counterMetrics
+	return gaugeMetrics, counterMetrics, nil
 }
 
 func (r *InMemoryRepo) Shutdown(_ context.Context) {

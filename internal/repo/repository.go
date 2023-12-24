@@ -18,7 +18,7 @@ type Repository interface {
 	GetGaugeMetric(ctx context.Context, name string) (models.GaugeMetric, error)
 	CreateGaugeMetric(ctx context.Context, name string, mType string, value float64) error
 	UpdateGaugeMetric(ctx context.Context, name string, value float64) error
-	GetAllMetrics(ctx context.Context) ([]models.GaugeMetric, []models.CounterMetric)
+	GetAllMetrics(ctx context.Context) ([]models.GaugeMetric, []models.CounterMetric, error)
 
 	Shutdown(ctx context.Context)
 	Ping(ctx context.Context) error

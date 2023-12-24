@@ -112,7 +112,7 @@ func (db *DB) CreateCounterMetric(ctx context.Context, name string, mType string
 	if err != nil {
 		return fmt.Errorf("CreateCounterMetric failed, %w", err)
 	}
-	db.logger.Debugf("Save counter metric failed, %v", ID)
+	db.logger.Debugf("Saved counter metric, id, %v", ID)
 
 	db.createHistoryMetric(ctx, tx, mType, name, value)
 
@@ -252,7 +252,7 @@ func (db *DB) UpdateGaugeMetric(ctx context.Context, name string, value float64)
 	return nil
 }
 
-func (db *DB) GetAllMetrics(ctx context.Context) (gms []models.GaugeMetric, cms []models.CounterMetric) {
+func (db *DB) GetAllMetrics(ctx context.Context) (gms []models.GaugeMetric, cms []models.CounterMetric, err error) {
 	db.logger.Debug("GetAllMetrics")
 
 	type metric struct {
