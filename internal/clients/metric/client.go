@@ -3,21 +3,30 @@ package metric
 import (
 	"bytes"
 	"compress/gzip"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 type client struct {
 	client *http.Client
+	logger *logrus.Logger
 	URL    string
 }
 
-func New(url string) *client {
+func New(
+	url string,
+	logger *logrus.Logger,
+) *client {
 	return &client{
 		client: &http.Client{},
-		URL:    fmt.Sprintf("http://%s", url),
+		URL:    url,
+		logger: logger,
 	}
 }
 
@@ -53,7 +62,10 @@ func (c *client) UpdateGaugeMetric(name string, value float64, compressType stri
 		return err
 	}
 	defer func() {
-		_ = resp.Body.Close()
+		err = resp.Body.Close()
+		if err != nil {
+			c.logger.Error(err)
+		}
 	}()
 
 	if resp.StatusCode != http.StatusOK {
@@ -73,7 +85,10 @@ func (c *client) UpdateCounterMetric(name string, value int64, compressType stri
 		return err
 	}
 	defer func() {
-		_ = resp.Body.Close()
+		err = resp.Body.Close()
+		if err != nil {
+			c.logger.Error(err)
+		}
 	}()
 
 	if resp.StatusCode != http.StatusOK {
@@ -93,7 +108,38 @@ func (c *client) UpdateMetric(jsonBody []byte, compressType string) error {
 		return err
 	}
 	defer func() {
-		_ = resp.Body.Close()
+		err = resp.Body.Close()
+		if err != nil {
+			c.logger.Error(err)
+		}
+	}()
+
+	if resp.StatusCode != http.StatusOK {
+		return NewRequestError(resp)
+	}
+	return nil
+}
+
+func (c *client) UpdateMetrics(metrics []Metrics, compressType string) error {
+	jsonBody, err := json.Marshal(metrics)
+	if err != nil {
+		return fmt.Errorf("failed to decode metrics, err %w", err)
+	}
+
+	resp, err := c.Post(
+		fmt.Sprintf("%s/updates/", c.URL),
+		"application/json",
+		jsonBody,
+		compressType,
+	)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		err = resp.Body.Close()
+		if err != nil {
+			c.logger.Error(err)
+		}
 	}()
 
 	if resp.StatusCode != http.StatusOK {
@@ -131,11 +177,59 @@ func (c *client) Post(
 		req.Header.Set(h, v)
 	}
 
-	resp, err = c.client.Do(req)
+	resp, err = c.DoWithRetry(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
 	return resp, nil
+}
+
+func (c *client) DoWithRetry(req *http.Request) (resp *http.Response, err error) {
+	for _, backoff := range c.scheduleBackoffAttempts() {
+		resp, err = c.DoWithLog(req)
+		if err != nil {
+			c.logger.Warningf("Request failed %v, err: %+v", req, err)
+			return
+		}
+
+		if resp.StatusCode < 500 {
+			break
+		}
+		time.Sleep(backoff)
+		c.logger.Warningf("Retrying in %v, Request error: %+v", backoff, err)
+	}
+	return
+}
+
+func (c *client) DoWithLog(req *http.Request) (resp *http.Response, err error) {
+	start := time.Now()
+	resp, err = c.client.Do(req)
+	duration := time.Since(start)
+
+	if err != nil {
+		c.logger.WithFields(logrus.Fields{
+			"uri":      req.URL.Path,
+			"method":   req.Method,
+			"duration": duration,
+			"err":      err,
+		}).Warning()
+		return
+	}
+	c.logger.WithFields(logrus.Fields{
+		"uri":      req.URL.Path,
+		"method":   req.Method,
+		"status":   resp.Status,
+		"duration": duration,
+	}).Info()
+	return
+}
+
+func (c *client) scheduleBackoffAttempts() []time.Duration {
+	return []time.Duration{
+		1 * time.Second,
+		3 * time.Second,
+		5 * time.Second,
+	}
 }
 
 func compress(data []byte) ([]byte, error) {

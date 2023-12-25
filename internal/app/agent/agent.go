@@ -1,7 +1,6 @@
 package agent
 
 import (
-	"encoding/json"
 	"math/rand"
 	"runtime"
 	"sync"
@@ -65,7 +64,10 @@ func New(config *Config, logger *logrus.Logger) *Agent {
 }
 
 func (ag *Agent) Start() error {
-	metricsCli := metric.New(ag.config.HTTPAddr)
+	metricsCli := metric.New(
+		ag.config.HTTPAddr,
+		ag.logger,
+	)
 
 	var mu sync.Mutex
 	var metrics models.Metrics
@@ -87,27 +89,9 @@ func (ag *Agent) Start() error {
 	for {
 		time.Sleep(ag.config.ReportInterval)
 		mu.Lock()
-		for _, m := range metrics.GaugeMetrics {
-			ag.logger.Info(*m)
-			jsonBody, err := json.Marshal(m)
-			if err != nil {
-				ag.logger.Error(err)
-			}
-			err = metricsCli.UpdateMetric(jsonBody, "gzip")
-			if err != nil {
-				ag.logger.Error(err)
-			}
-		}
-		for _, m := range metrics.CounterMetrics {
-			ag.logger.Info(*m)
-			jsonBody, err := json.Marshal(m)
-			if err != nil {
-				ag.logger.Error(err)
-			}
-			err = metricsCli.UpdateMetric(jsonBody, "gzip")
-			if err != nil {
-				ag.logger.Error(err)
-			}
+		err := metricsCli.UpdateMetrics(metric.CastToMetrics(metrics), "gzip")
+		if err != nil {
+			ag.logger.Error(err)
 		}
 		mu.Unlock()
 	}

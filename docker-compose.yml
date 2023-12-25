@@ -1,0 +1,62 @@
+version: '3'
+
+services:
+  metrics-api:
+    build:
+      context: .
+      dockerfile: DockerfileApi
+    restart: on-failure
+    ports:
+      - '8082:8082'
+    working_dir: "$PWD"
+    depends_on:
+      - metrics-postgres
+    links:
+      - metrics-postgres
+    environment:
+      ADDRESS: ':8082'
+      LOG_LEVEL: 'debug'
+      FILE_STORAGE_PATH: '/tmp/metrics-db.json'
+      DATABASE_DSN: 'postgres://usr:psswrd@metrics-postgres:5432/metrics?sslmode=disable'
+      STORE_INTERVAL: '300'
+      RESTORE: 'true'
+    networks:
+      - app-network
+    volumes:
+      - "$PWD:$PWD"
+
+  metrics-agent:
+    build:
+      context: .
+      dockerfile: DockerfileAgent
+    restart: on-failure
+    working_dir: "$PWD"
+    depends_on:
+      - metrics-api
+    links:
+      - metrics-api
+    environment:
+      ADDRESS: 'metrics-api:8082'
+      REPORT_INTERVAL: '10'
+      POLL_INTERVAL: '2'
+      LOG_LEVEL: 'debug'
+    networks:
+      - app-network
+    volumes:
+      - "$PWD:$PWD"
+
+  metrics-postgres:
+    container_name: metrics-postgres
+    image: postgres:14.1-alpine
+    ports:
+      - "54323:5432"
+    environment:
+      POSTGRES_USER: 'usr'
+      POSTGRES_PASSWORD: 'psswrd'
+      POSTGRES_DB: 'metrics'
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

@@ -1,6 +1,7 @@
 package business
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sort"
@@ -24,8 +25,8 @@ func New(repo Repository, logger *logrus.Logger) *bll {
 	return &bll{repo: repo, logger: logger}
 }
 
-func (bll *bll) GetGaugeMetric(mName string) (float64, error) {
-	gm, err := bll.repo.GetGaugeMetric(mName)
+func (bll *bll) GetGaugeMetric(ctx context.Context, mName string) (float64, error) {
+	gm, err := bll.repo.GetGaugeMetric(ctx, mName)
 	if err != nil {
 		if errors.Is(err, customerrors.ErrNotFound) {
 			return 0, fmt.Errorf("gauge metric not found: %w", err)
@@ -36,21 +37,24 @@ func (bll *bll) GetGaugeMetric(mName string) (float64, error) {
 	return gm.Value, nil
 }
 
-func (bll *bll) UpdateGaugeMetric(gmReq blModels.GaugeMetric) (err error) {
-	_, err = bll.repo.GetGaugeMetric(gmReq.Name)
+func (bll *bll) UpdateGaugeMetric(ctx context.Context, gmReq blModels.GaugeMetric) (err error) {
+	_, err = bll.repo.GetGaugeMetric(ctx, gmReq.Name)
 	if err != nil {
 		if errors.Is(err, customerrors.ErrNotFound) {
-			bll.repo.CreateGaugeMetric(gmReq.Name, gmReq.Type, gmReq.Value)
+			err := bll.repo.CreateGaugeMetric(ctx, gmReq.Name, gmReq.Type, gmReq.Value)
+			if err != nil {
+				return fmt.Errorf("create gauge metric failed, %w", err)
+			}
 			return nil
 		}
 		return fmt.Errorf("failed to get gauge metric, %w", err)
 	}
-	err = bll.repo.UpdateGaugeMetric(gmReq.Name, gmReq.Value)
+	err = bll.repo.UpdateGaugeMetric(ctx, gmReq.Name, gmReq.Value)
 	return
 }
 
-func (bll *bll) GetCounterMetric(mName string) (int64, error) {
-	cm, err := bll.repo.GetCounterMetric(mName)
+func (bll *bll) GetCounterMetric(ctx context.Context, mName string) (int64, error) {
+	cm, err := bll.repo.GetCounterMetric(ctx, mName)
 	if err != nil {
 		if errors.Is(err, customerrors.ErrNotFound) {
 			return 0, fmt.Errorf("counter metric not found: %w", err)
@@ -61,26 +65,32 @@ func (bll *bll) GetCounterMetric(mName string) (int64, error) {
 	return cm.Value, nil
 }
 
-func (bll *bll) UpdateCounterMetric(cmReq blModels.CounterMetric) (err error) {
-	cm, err := bll.repo.GetCounterMetric(cmReq.Name)
+func (bll *bll) UpdateCounterMetric(ctx context.Context, cmReq blModels.CounterMetric) (err error) {
+	cm, err := bll.repo.GetCounterMetric(ctx, cmReq.Name)
 	if err != nil {
 		if errors.Is(err, customerrors.ErrNotFound) {
-			bll.repo.CreateCounterMetric(cmReq.Name, cmReq.Type, cmReq.Value)
+			err := bll.repo.CreateCounterMetric(ctx, cmReq.Name, cmReq.Type, cmReq.Value)
+			if err != nil {
+				return fmt.Errorf("create counter metric failed, %w", err)
+			}
 			return nil
 		}
 		return fmt.Errorf("failed to get counter metric, %w", err)
 	}
 
 	newVal := cm.Value + cmReq.Value
-	err = bll.repo.UpdateCounterMetric(cmReq.Name, newVal)
+	err = bll.repo.UpdateCounterMetric(ctx, cmReq.Name, newVal)
 	return
 }
 
-func (bll *bll) GetAllMetrics() ([]blModels.GaugeMetric, []blModels.CounterMetric) {
+func (bll *bll) GetAllMetrics(ctx context.Context) ([]blModels.GaugeMetric, []blModels.CounterMetric, error) {
 	gaugeMetrics := make([]blModels.GaugeMetric, 0, countGaugeMetrics)
 	counterMetrics := make([]blModels.CounterMetric, 0, countCounterMetrics)
 
-	gms, cms := bll.repo.GetAllMetrics()
+	gms, cms, err := bll.repo.GetAllMetrics(ctx)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get all metrics, %w", err)
+	}
 
 	for _, gMetric := range gms {
 		gaugeMetrics = append(gaugeMetrics, blModels.GaugeMetric{
@@ -100,5 +110,13 @@ func (bll *bll) GetAllMetrics() ([]blModels.GaugeMetric, []blModels.CounterMetri
 		sort.Sort(blModels.ByName(gaugeMetrics))
 	}
 
-	return gaugeMetrics, counterMetrics
+	return gaugeMetrics, counterMetrics, nil
+}
+
+func (bll *bll) Ping(ctx context.Context) error {
+	err := bll.repo.Ping(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to ping repo %w", err)
+	}
+	return nil
 }

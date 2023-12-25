@@ -47,16 +47,16 @@ func runRest() error {
 		return err
 	}
 
-	db := repo.New(
+	db, err := repo.New(
+		ctx,
+		config.DatabaseDSN,
 		config.StoreInterval,
 		config.FileStoragePath,
 		config.Restore,
 		logger,
 	)
-
-	err = db.Init()
 	if err != nil {
-		return fmt.Errorf("failed to init db: %w", err)
+		return fmt.Errorf("failed to create repo: %w", err)
 	}
 
 	wg := &sync.WaitGroup{}
@@ -70,7 +70,7 @@ func runRest() error {
 		defer wg.Done()
 		<-ctx.Done()
 
-		db.Shutdown()
+		db.Shutdown(ctx)
 	}()
 
 	componentsErrs := make(chan error, 1)
