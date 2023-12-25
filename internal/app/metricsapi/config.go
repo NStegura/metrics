@@ -16,6 +16,7 @@ type Config struct {
 	LogLevel        string
 	FileStoragePath string
 	DatabaseDSN     string
+	RequestKey      string
 	StoreInterval   time.Duration
 	Restore         bool
 }
@@ -26,6 +27,7 @@ func NewConfig() *Config {
 		LogLevel:        "debug",
 		FileStoragePath: "/tmp/metrics-db.json",
 		DatabaseDSN:     "",
+		RequestKey:      "",
 		StoreInterval:   defaultStoreInerval,
 		Restore:         false,
 	}
@@ -44,6 +46,7 @@ func (c *Config) ParseFlags() (err error) {
 	flag.StringVar(&c.FileStoragePath, "f", "/tmp/metrics-db.json", "storage path")
 	flag.StringVar(&c.DatabaseDSN, "d", "", "database dsn")
 	flag.BoolVar(&c.Restore, "r", true, "load metrics")
+	flag.StringVar(&c.RequestKey, "k", "", "add key to sign requests")
 	flag.Parse()
 
 	if envRunAddr, ok := os.LookupEnv("ADDRESS"); ok {
@@ -67,6 +70,9 @@ func (c *Config) ParseFlags() (err error) {
 		if err != nil {
 			return
 		}
+	}
+	if key, ok := os.LookupEnv("KEY"); ok {
+		c.RequestKey = key
 	}
 
 	if restoreIn, ok := os.LookupEnv("RESTORE"); ok {
