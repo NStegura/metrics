@@ -38,7 +38,6 @@ func (s *APIServer) hashValidation(h http.Handler) http.Handler {
 				return
 			}
 		}
-		s.logger.Println("ok")
 		h.ServeHTTP(w, r)
 	})
 }

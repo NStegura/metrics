@@ -65,7 +65,7 @@ func (s *APIServer) Start() error {
 func (s *APIServer) configRouter() {
 	s.router.Use(s.requestLogger)
 	s.router.Use(s.gzipMiddleware)
-	s.router.Use(s.hashValidation)
+	//s.router.Use(s.hashValidation)
 
 	s.router.Get(`/`, s.getAllMetrics())
 	s.router.Post(`/updates/`, s.updateAllMetrics())
