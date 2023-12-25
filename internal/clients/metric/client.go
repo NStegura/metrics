@@ -3,11 +3,15 @@ package metric
 import (
 	"bytes"
 	"compress/gzip"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -17,17 +21,27 @@ type client struct {
 	client *http.Client
 	logger *logrus.Logger
 	URL    string
+	Key    string
 }
 
 func New(
-	url string,
+	addr string,
+	key string,
 	logger *logrus.Logger,
-) *client {
+) (*client, error) {
+	var err error
+	if !strings.HasPrefix(addr, "http") {
+		addr, err = url.JoinPath("http:", addr)
+		if err != nil {
+			return nil, fmt.Errorf("failed to init client, %w", err)
+		}
+	}
 	return &client{
 		client: &http.Client{},
-		URL:    url,
+		URL:    addr,
+		Key:    key,
 		logger: logger,
-	}
+	}, nil
 }
 
 type RequestError struct {
@@ -156,6 +170,12 @@ func (c *client) Post(
 ) (resp *http.Response, err error) {
 	headers := make(map[string]string)
 
+	if c.Key != "" {
+		h := hmac.New(sha256.New, []byte(c.Key))
+		h.Write(body)
+		headers["HashSHA256"] = hex.EncodeToString(h.Sum(nil))
+	}
+
 	if compressType == "gzip" {
 		body, err = compress(body)
 		if err != nil {
@@ -192,7 +212,7 @@ func (c *client) DoWithRetry(req *http.Request) (resp *http.Response, err error)
 			return
 		}
 
-		if resp.StatusCode >= 500 {
+		if resp.StatusCode < http.StatusInternalServerError {
 			break
 		}
 		time.Sleep(backoff)

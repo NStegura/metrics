@@ -2,15 +2,14 @@ package agent
 
 import (
 	"flag"
-	"net/url"
 	"os"
 	"strconv"
-	"strings"
 	"time"
 )
 
 const (
 	defaultHTTPAddr       string        = ":8080"
+	defaultMetricCliKey   string        = ""
 	defaultLogLevel       string        = "debug"
 	defaultReportInterval time.Duration = 10
 	defaultPollInterval   time.Duration = 2
@@ -18,6 +17,7 @@ const (
 
 type Config struct {
 	HTTPAddr       string
+	metricCliKey   string
 	LogLevel       string
 	ReportInterval time.Duration
 	PollInterval   time.Duration
@@ -26,6 +26,7 @@ type Config struct {
 func NewConfig() *Config {
 	return &Config{
 		HTTPAddr:       defaultHTTPAddr,
+		metricCliKey:   defaultMetricCliKey,
 		ReportInterval: defaultReportInterval,
 		PollInterval:   defaultPollInterval,
 		LogLevel:       defaultLogLevel,
@@ -49,6 +50,7 @@ func (c *Config) ParseFlags() (err error) {
 		int(defaultPollInterval),
 		"frequency of polling metrics from the package",
 	)
+	flag.StringVar(&c.metricCliKey, "k", "some key", "add key to sign requests")
 	flag.Parse()
 
 	if envRunAddr, ok := os.LookupEnv("ADDRESS"); ok {
@@ -66,15 +68,11 @@ func (c *Config) ParseFlags() (err error) {
 			return
 		}
 	}
+	if key, ok := os.LookupEnv("KEY"); ok {
+		c.metricCliKey = key
+	}
 
 	c.ReportInterval = time.Second * time.Duration(reportIntervalIn)
 	c.PollInterval = time.Second * time.Duration(pollIntervalIn)
-
-	if !strings.HasPrefix("http", c.HTTPAddr) {
-		c.HTTPAddr, err = url.JoinPath("http:", c.HTTPAddr)
-		if err != nil {
-			return
-		}
-	}
 	return
 }

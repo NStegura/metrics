@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"fmt"
 	"math/rand"
 	"runtime"
 	"sync"
@@ -64,10 +65,14 @@ func New(config *Config, logger *logrus.Logger) *Agent {
 }
 
 func (ag *Agent) Start() error {
-	metricsCli := metric.New(
+	metricsCli, err := metric.New(
 		ag.config.HTTPAddr,
+		ag.config.metricCliKey,
 		ag.logger,
 	)
+	if err != nil {
+		return fmt.Errorf("failed to init cli, %w", err)
+	}
 
 	var mu sync.Mutex
 	var metrics models.Metrics
