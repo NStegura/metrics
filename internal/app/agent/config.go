@@ -2,8 +2,10 @@ package agent
 
 import (
 	"flag"
+	"net/url"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -67,5 +69,12 @@ func (c *Config) ParseFlags() (err error) {
 
 	c.ReportInterval = time.Second * time.Duration(reportIntervalIn)
 	c.PollInterval = time.Second * time.Duration(pollIntervalIn)
+
+	if !strings.HasPrefix("http", c.HTTPAddr) {
+		c.HTTPAddr, err = url.JoinPath("http:", c.HTTPAddr)
+		if err != nil {
+			return
+		}
+	}
 	return
 }

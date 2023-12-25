@@ -271,7 +271,7 @@ func (db *DB) GetAllMetrics(ctx context.Context) (gms []models.GaugeMetric, cms 
 
 	rows, err := db.pool.Query(ctx, query)
 	if err != nil {
-		db.logger.Errorf("GetAllMetrics failed, %s", err)
+		err = fmt.Errorf("get all metric failed, %w", err)
 		return
 	}
 

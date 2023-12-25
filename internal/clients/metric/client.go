@@ -25,7 +25,7 @@ func New(
 ) *client {
 	return &client{
 		client: &http.Client{},
-		URL:    fmt.Sprintf("http://%s", url),
+		URL:    url,
 		logger: logger,
 	}
 }
@@ -192,7 +192,7 @@ func (c *client) DoWithRetry(req *http.Request) (resp *http.Response, err error)
 			return
 		}
 
-		if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+		if resp.StatusCode >= 500 {
 			break
 		}
 		time.Sleep(backoff)
