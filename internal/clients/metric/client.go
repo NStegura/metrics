@@ -192,7 +192,7 @@ func (c *client) DoWithRetry(req *http.Request) (resp *http.Response, err error)
 			return
 		}
 
-		if resp.StatusCode >= 500 {
+		if resp.StatusCode < 500 {
 			break
 		}
 		time.Sleep(backoff)

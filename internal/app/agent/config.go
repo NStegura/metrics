@@ -70,7 +70,7 @@ func (c *Config) ParseFlags() (err error) {
 	c.ReportInterval = time.Second * time.Duration(reportIntervalIn)
 	c.PollInterval = time.Second * time.Duration(pollIntervalIn)
 
-	if !strings.HasPrefix("http", c.HTTPAddr) {
+	if !strings.HasPrefix(c.HTTPAddr, "http") {
 		c.HTTPAddr, err = url.JoinPath("http:", c.HTTPAddr)
 		if err != nil {
 			return
