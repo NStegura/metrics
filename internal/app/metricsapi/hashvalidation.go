@@ -18,6 +18,12 @@ func (s *APIServer) hashValidation(h http.Handler) http.Handler {
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
+
+			err = r.Body.Close()
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
 			r.Body = io.NopCloser(bytes.NewBuffer(b))
 
 			hm.Write(b)

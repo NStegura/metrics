@@ -46,7 +46,7 @@ func (c *Config) ParseFlags() (err error) {
 	flag.StringVar(&c.FileStoragePath, "f", "/tmp/metrics-db.json", "storage path")
 	flag.StringVar(&c.DatabaseDSN, "d", "", "database dsn")
 	flag.BoolVar(&c.Restore, "r", true, "load metrics")
-	flag.StringVar(&c.RequestKey, "k", "some key", "add key to sign requests")
+	flag.StringVar(&c.RequestKey, "k", "", "add key to sign requests")
 	flag.Parse()
 
 	if envRunAddr, ok := os.LookupEnv("ADDRESS"); ok {

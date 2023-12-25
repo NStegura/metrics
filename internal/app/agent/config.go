@@ -50,7 +50,7 @@ func (c *Config) ParseFlags() (err error) {
 		int(defaultPollInterval),
 		"frequency of polling metrics from the package",
 	)
-	flag.StringVar(&c.metricCliKey, "k", "some key", "add key to sign requests")
+	flag.StringVar(&c.metricCliKey, "k", "", "add key to sign requests")
 	flag.Parse()
 
 	if envRunAddr, ok := os.LookupEnv("ADDRESS"); ok {
