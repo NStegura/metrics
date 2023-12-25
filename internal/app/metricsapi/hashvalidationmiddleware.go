@@ -11,7 +11,7 @@ import (
 
 func (s *APIServer) hashValidation(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if s.config.RequestKey != "" {
+		if s.config.RequestKey != "" && r.Header.Get("HashSHA256") != "" {
 			hm := hmac.New(sha256.New, []byte(s.config.RequestKey))
 			b, err := io.ReadAll(r.Body)
 			if err != nil {
