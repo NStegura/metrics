@@ -39,7 +39,7 @@ func NewConfig() *Config {
 func (c *Config) ParseFlags() (err error) {
 	var pollIntervalIn int
 	var reportIntervalIn int
-	var rateLimitIn int
+	var rateLimitIn = defaultRateLimit
 
 	flag.StringVar(&c.HTTPAddr, "a", "localhost:8080", "address and port to run server")
 	flag.IntVar(
