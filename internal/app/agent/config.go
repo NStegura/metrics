@@ -11,14 +11,16 @@ const (
 	defaultHTTPAddr       string        = ":8080"
 	defaultMetricCliKey   string        = ""
 	defaultLogLevel       string        = "debug"
+	defaultRateLimit      int           = 3
 	defaultReportInterval time.Duration = 10
 	defaultPollInterval   time.Duration = 2
 )
 
 type Config struct {
 	HTTPAddr       string
-	metricCliKey   string
+	MetricCliKey   string
 	LogLevel       string
+	RateLimit      int
 	ReportInterval time.Duration
 	PollInterval   time.Duration
 }
@@ -26,7 +28,8 @@ type Config struct {
 func NewConfig() *Config {
 	return &Config{
 		HTTPAddr:       defaultHTTPAddr,
-		metricCliKey:   defaultMetricCliKey,
+		MetricCliKey:   defaultMetricCliKey,
+		RateLimit:      defaultRateLimit,
 		ReportInterval: defaultReportInterval,
 		PollInterval:   defaultPollInterval,
 		LogLevel:       defaultLogLevel,
@@ -36,6 +39,7 @@ func NewConfig() *Config {
 func (c *Config) ParseFlags() (err error) {
 	var pollIntervalIn int
 	var reportIntervalIn int
+	var rateLimitIn int
 
 	flag.StringVar(&c.HTTPAddr, "a", "localhost:8080", "address and port to run server")
 	flag.IntVar(
@@ -50,7 +54,8 @@ func (c *Config) ParseFlags() (err error) {
 		int(defaultPollInterval),
 		"frequency of polling metrics from the package",
 	)
-	flag.StringVar(&c.metricCliKey, "k", "", "add key to sign requests")
+	flag.StringVar(&c.MetricCliKey, "k", "", "add key to sign requests")
+	flag.IntVar(&c.RateLimit, "l", defaultRateLimit, "rate limit")
 	flag.Parse()
 
 	if envRunAddr, ok := os.LookupEnv("ADDRESS"); ok {
@@ -69,10 +74,17 @@ func (c *Config) ParseFlags() (err error) {
 		}
 	}
 	if key, ok := os.LookupEnv("KEY"); ok {
-		c.metricCliKey = key
+		c.MetricCliKey = key
+	}
+	if rl, ok := os.LookupEnv("RATE_LIMIT"); ok {
+		rateLimitIn, err = strconv.Atoi(rl)
+		if err != nil {
+			return
+		}
 	}
 
 	c.ReportInterval = time.Second * time.Duration(reportIntervalIn)
 	c.PollInterval = time.Second * time.Duration(pollIntervalIn)
+	c.RateLimit = rateLimitIn
 	return
 }

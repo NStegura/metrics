@@ -42,6 +42,7 @@ services:
       REPORT_INTERVAL: '10'
       POLL_INTERVAL: '2'
       LOG_LEVEL: 'debug'
+      RATE_LIMIT: '3'
     networks:
       - app-network
     volumes:

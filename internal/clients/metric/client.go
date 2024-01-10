@@ -17,7 +17,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type client struct {
+type Client struct {
 	client *http.Client
 	logger *logrus.Logger
 	URL    string
@@ -28,7 +28,7 @@ func New(
 	addr string,
 	key string,
 	logger *logrus.Logger,
-) (*client, error) {
+) (*Client, error) {
 	var err error
 	if !strings.HasPrefix(addr, "http") {
 		addr, err = url.JoinPath("http:", addr)
@@ -36,7 +36,7 @@ func New(
 			return nil, fmt.Errorf("failed to init client, %w", err)
 		}
 	}
-	return &client{
+	return &Client{
 		client: &http.Client{},
 		URL:    addr,
 		Key:    key,
@@ -65,7 +65,7 @@ func NewRequestError(response *http.Response) error {
 	return &RequestError{response.Request.URL, body, response.StatusCode}
 }
 
-func (c *client) UpdateGaugeMetric(name string, value float64, compressType string) error {
+func (c *Client) UpdateGaugeMetric(name string, value float64, compressType string) error {
 	resp, err := c.Post(
 		fmt.Sprintf("%s/update/gauge/%s/%v", c.URL, name, value),
 		"text/plain",
@@ -88,7 +88,7 @@ func (c *client) UpdateGaugeMetric(name string, value float64, compressType stri
 	return nil
 }
 
-func (c *client) UpdateCounterMetric(name string, value int64, compressType string) error {
+func (c *Client) UpdateCounterMetric(name string, value int64, compressType string) error {
 	resp, err := c.Post(
 		fmt.Sprintf("%s/update/counter/%s/%v", c.URL, name, value),
 		"text/plain",
@@ -111,7 +111,7 @@ func (c *client) UpdateCounterMetric(name string, value int64, compressType stri
 	return nil
 }
 
-func (c *client) UpdateMetric(jsonBody []byte, compressType string) error {
+func (c *Client) UpdateMetric(jsonBody []byte, compressType string) error {
 	resp, err := c.Post(
 		fmt.Sprintf("%s/update/", c.URL),
 		"application/json",
@@ -134,7 +134,7 @@ func (c *client) UpdateMetric(jsonBody []byte, compressType string) error {
 	return nil
 }
 
-func (c *client) UpdateMetrics(metrics []Metrics, compressType string) error {
+func (c *Client) UpdateMetrics(metrics []Metrics, compressType string) error {
 	jsonBody, err := json.Marshal(metrics)
 	if err != nil {
 		return fmt.Errorf("failed to decode metrics, err %w", err)
@@ -162,7 +162,7 @@ func (c *client) UpdateMetrics(metrics []Metrics, compressType string) error {
 	return nil
 }
 
-func (c *client) Post(
+func (c *Client) Post(
 	url string,
 	contentType string,
 	body []byte,
@@ -204,7 +204,7 @@ func (c *client) Post(
 	return resp, nil
 }
 
-func (c *client) DoWithRetry(req *http.Request) (resp *http.Response, err error) {
+func (c *Client) DoWithRetry(req *http.Request) (resp *http.Response, err error) {
 	for _, backoff := range c.scheduleBackoffAttempts() {
 		resp, err = c.DoWithLog(req)
 		if err != nil {
@@ -221,7 +221,7 @@ func (c *client) DoWithRetry(req *http.Request) (resp *http.Response, err error)
 	return
 }
 
-func (c *client) DoWithLog(req *http.Request) (resp *http.Response, err error) {
+func (c *Client) DoWithLog(req *http.Request) (resp *http.Response, err error) {
 	start := time.Now()
 	resp, err = c.client.Do(req)
 	duration := time.Since(start)
@@ -244,7 +244,7 @@ func (c *client) DoWithLog(req *http.Request) (resp *http.Response, err error) {
 	return
 }
 
-func (c *client) scheduleBackoffAttempts() []time.Duration {
+func (c *Client) scheduleBackoffAttempts() []time.Duration {
 	return []time.Duration{
 		1 * time.Second,
 		3 * time.Second,

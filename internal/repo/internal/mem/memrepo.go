@@ -3,9 +3,10 @@ package mem
 import (
 	"context"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/NStegura/metrics/internal/customerrors"
 	"github.com/NStegura/metrics/internal/repo/models"
-	"github.com/sirupsen/logrus"
 )
 
 const (

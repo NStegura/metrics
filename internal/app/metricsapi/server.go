@@ -10,11 +10,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/sirupsen/logrus"
+
 	"github.com/NStegura/metrics/internal/app/metricsapi/models"
 	blModels "github.com/NStegura/metrics/internal/business/models"
 	"github.com/NStegura/metrics/internal/customerrors"
-	"github.com/go-chi/chi/v5"
-	"github.com/sirupsen/logrus"
 )
 
 type contentType string

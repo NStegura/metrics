@@ -1,15 +1,17 @@
 package agent
 
 import (
-	"fmt"
 	"math/rand"
 	"runtime"
 	"sync"
 	"time"
 
+	"github.com/shirou/gopsutil/v3/cpu"
+	"github.com/shirou/gopsutil/v3/mem"
+	"github.com/sirupsen/logrus"
+
 	"github.com/NStegura/metrics/internal/app/agent/models"
 	"github.com/NStegura/metrics/internal/clients/metric"
-	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -44,65 +46,95 @@ const (
 	randomValue models.MetricName = "RandomValue"
 	pollCount   models.MetricName = "PollCount"
 
+	totalMemory     models.MetricName = "TotalMemory"
+	freeMemory      models.MetricName = "FreeMemory"
+	CPUutilization1 models.MetricName = "CPUutilization1"
+
 	gauge    models.MetricType = "gauge"
 	counterT models.MetricType = "counter"
 
 	countGaugeMetrics   int = 27
 	countCounterMetrics int = 1
+	countGaugePsMetrics int = 3
 )
 
 type Agent struct {
-	config *Config
+	config     *Config
+	metricsCli *metric.Client
 
 	logger *logrus.Logger
 }
 
-func New(config *Config, logger *logrus.Logger) *Agent {
+func New(config *Config, metricsCli *metric.Client, logger *logrus.Logger) *Agent {
 	return &Agent{
-		config: config,
-		logger: logger,
+		config:     config,
+		metricsCli: metricsCli,
+		logger:     logger,
 	}
 }
 
 func (ag *Agent) Start() error {
-	metricsCli, err := metric.New(
-		ag.config.HTTPAddr,
-		ag.config.metricCliKey,
-		ag.logger,
-	)
-	if err != nil {
-		return fmt.Errorf("failed to init cli, %w", err)
+	var wg sync.WaitGroup
+
+	metricsCh := ag.collectMetrics(&wg)
+
+	ag.logger.Info(ag.config.RateLimit)
+	for w := 1; w <= ag.config.RateLimit; w++ {
+		ag.sendMetrics(w, &wg, metricsCh)
 	}
 
-	var mu sync.Mutex
-	var metrics models.Metrics
+	wg.Wait()
+	return nil
+}
 
+func (ag *Agent) collectMetrics(wg *sync.WaitGroup) chan models.Metrics {
+	metricsCh := make(chan models.Metrics, ag.config.RateLimit)
+	pollTicker := time.NewTicker(ag.config.PollInterval)
+
+	wg.Add(1)
 	go func() {
-		var counter int64 = 0
-		for {
-			counter++
-			time.Sleep(ag.config.PollInterval)
+		defer close(metricsCh)
+		defer pollTicker.Stop()
+		defer wg.Done()
 
-			stats := runtime.MemStats{}
-			runtime.ReadMemStats(&stats)
-			mu.Lock()
-			metrics = getMetricsFromStats(stats, counter)
-			mu.Unlock()
+		var counter int64 = 0
+
+		for range pollTicker.C {
+			counter++
+			statMetrics := ag.getMetricsFromStats(counter)
+			metricsCh <- statMetrics
+			psMetrics, errs, maxErrs := ag.getPSMetrics()
+			if len(errs) < maxErrs {
+				metricsCh <- psMetrics
+			}
 		}
 	}()
 
-	for {
-		time.Sleep(ag.config.ReportInterval)
-		mu.Lock()
-		err := metricsCli.UpdateMetrics(metric.CastToMetrics(metrics), "gzip")
-		if err != nil {
-			ag.logger.Error(err)
-		}
-		mu.Unlock()
-	}
+	return metricsCh
 }
 
-func getMetricsFromStats(stats runtime.MemStats, counter int64) models.Metrics {
+func (ag *Agent) sendMetrics(workerID int, wg *sync.WaitGroup, metricsCh <-chan models.Metrics) {
+	ag.logger.Infof("start worker %v", workerID)
+	reportTicker := time.NewTicker(ag.config.ReportInterval)
+
+	wg.Add(1)
+	go func() {
+		defer reportTicker.Stop()
+		defer wg.Done()
+
+		for range reportTicker.C {
+			err := ag.metricsCli.UpdateMetrics(metric.CastToMetrics(<-metricsCh), "gzip")
+			if err != nil {
+				ag.logger.Error(err)
+			}
+		}
+	}()
+}
+
+func (ag *Agent) getMetricsFromStats(counter int64) models.Metrics {
+	stats := runtime.MemStats{}
+	runtime.ReadMemStats(&stats)
+
 	gaugeMetrics := make(map[models.MetricName]*models.GaugeMetric, countGaugeMetrics)
 	counterMetrics := make(map[models.MetricName]*models.CounterMetric, countCounterMetrics)
 	metrics := models.Metrics{GaugeMetrics: gaugeMetrics, CounterMetrics: counterMetrics}
@@ -148,4 +180,32 @@ func getMetricsFromStats(stats runtime.MemStats, counter int64) models.Metrics {
 	metrics.GaugeMetrics[randomValue] = &models.GaugeMetric{Name: randomValue, Type: gauge, Value: rand.Float64()}
 	metrics.CounterMetrics[pollCount] = &models.CounterMetric{Name: pollCount, Type: counterT, Value: counter}
 	return metrics
+}
+
+func (ag *Agent) getPSMetrics() (m models.Metrics, errs []error, maxErrs int) {
+	maxErrsCount := 2
+
+	gaugeMetrics := make(map[models.MetricName]*models.GaugeMetric, countGaugePsMetrics)
+	metrics := models.Metrics{GaugeMetrics: gaugeMetrics}
+
+	v, err := mem.VirtualMemory()
+	if err != nil {
+		ag.logger.Errorf("failed to collect virtual mem stats, %s", err)
+		errs = append(errs, err)
+	} else {
+		metrics.GaugeMetrics[totalMemory] = &models.GaugeMetric{
+			Name: totalMemory, Type: gauge, Value: float64(v.Total)}
+		metrics.GaugeMetrics[freeMemory] = &models.GaugeMetric{
+			Name: freeMemory, Type: gauge, Value: float64(v.Free)}
+	}
+
+	cpuStat, err := cpu.Percent(0, true)
+	if err != nil {
+		ag.logger.Errorf("failed to collect virtual cpu stats, %s", err)
+		errs = append(errs, err)
+	} else {
+		metrics.GaugeMetrics[CPUutilization1] = &models.GaugeMetric{
+			Name: CPUutilization1, Type: gauge, Value: cpuStat[0]}
+	}
+	return metrics, errs, maxErrsCount
 }

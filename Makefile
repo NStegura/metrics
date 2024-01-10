@@ -42,6 +42,12 @@ rollbackmigrations:
 ## LINTERS
 GOLANGCI_LINT_CACHE?=/tmp/praktikum-golangci-lint-cache
 
+.PHONY: fmt
+fmt:
+	go fmt ./...
+	goimports -w -local github.com/NStegura/metrics ./cmd
+	goimports -w -local github.com/NStegura/metrics ./internal
+
 .PHONY: lint
 lint: _golangci-lint-rm-unformatted-report
 

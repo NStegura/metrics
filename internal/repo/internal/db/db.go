@@ -7,13 +7,14 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/NStegura/metrics/internal/customerrors"
-	"github.com/NStegura/metrics/internal/repo/models"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
 	"github.com/sirupsen/logrus"
+
+	"github.com/NStegura/metrics/internal/customerrors"
+	"github.com/NStegura/metrics/internal/repo/models"
 )
 
 type DB struct {

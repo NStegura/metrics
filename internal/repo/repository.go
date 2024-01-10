@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/NStegura/metrics/internal/repo/internal/db"
 	"github.com/NStegura/metrics/internal/repo/internal/mem"
 	"github.com/NStegura/metrics/internal/repo/models"
-	"github.com/sirupsen/logrus"
 )
 
 type Repository interface {

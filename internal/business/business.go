@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/sirupsen/logrus"
+
 	blModels "github.com/NStegura/metrics/internal/business/models"
 	"github.com/NStegura/metrics/internal/customerrors"
-	"github.com/sirupsen/logrus"
 )
 
 const (
