@@ -103,10 +103,8 @@ func (ag *Agent) collectMetrics(wg *sync.WaitGroup) chan models.Metrics {
 			counter++
 			statMetrics := ag.getMetricsFromStats(counter)
 			metricsCh <- statMetrics
-			psMetrics, errs, maxErrs := ag.getPSMetrics()
-			if len(errs) < maxErrs {
-				metricsCh <- psMetrics
-			}
+			psMetrics := ag.getPSMetrics()
+			metricsCh <- psMetrics
 		}
 	}()
 
@@ -123,7 +121,7 @@ func (ag *Agent) sendMetrics(workerID int, wg *sync.WaitGroup, metricsCh <-chan 
 		defer wg.Done()
 
 		for range reportTicker.C {
-			err := ag.metricsCli.UpdateMetrics(metric.CastToMetrics(<-metricsCh), "gzip")
+			err := ag.metricsCli.UpdateMetrics(metric.CastToMetrics(<-metricsCh))
 			if err != nil {
 				ag.logger.Error(err)
 			}
@@ -182,16 +180,13 @@ func (ag *Agent) getMetricsFromStats(counter int64) models.Metrics {
 	return metrics
 }
 
-func (ag *Agent) getPSMetrics() (m models.Metrics, errs []error, maxErrs int) {
-	maxErrsCount := 2
-
+func (ag *Agent) getPSMetrics() (m models.Metrics) {
 	gaugeMetrics := make(map[models.MetricName]*models.GaugeMetric, countGaugePsMetrics)
 	metrics := models.Metrics{GaugeMetrics: gaugeMetrics}
 
 	v, err := mem.VirtualMemory()
 	if err != nil {
 		ag.logger.Errorf("failed to collect virtual mem stats, %s", err)
-		errs = append(errs, err)
 	} else {
 		metrics.GaugeMetrics[totalMemory] = &models.GaugeMetric{
 			Name: totalMemory, Type: gauge, Value: float64(v.Total)}
@@ -202,10 +197,9 @@ func (ag *Agent) getPSMetrics() (m models.Metrics, errs []error, maxErrs int) {
 	cpuStat, err := cpu.Percent(0, true)
 	if err != nil {
 		ag.logger.Errorf("failed to collect virtual cpu stats, %s", err)
-		errs = append(errs, err)
 	} else {
 		metrics.GaugeMetrics[CPUutilization1] = &models.GaugeMetric{
 			Name: CPUutilization1, Type: gauge, Value: cpuStat[0]}
 	}
-	return metrics, errs, maxErrsCount
+	return metrics
 }

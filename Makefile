@@ -49,7 +49,11 @@ fmt:
 	goimports -w -local github.com/NStegura/metrics ./internal
 
 .PHONY: lint
-lint: _golangci-lint-rm-unformatted-report
+lint:
+	golangci-lint run
+
+.PHONY: lint-report
+lint-report: _golangci-lint-rm-unformatted-report
 
 .PHONY: _golangci-lint-reports-mkdir
 _golangci-lint-reports-mkdir:

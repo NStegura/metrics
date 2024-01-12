@@ -92,6 +92,7 @@ func (s *APIServer) gzipMiddleware(h http.Handler) http.Handler {
 		if sendsGzip {
 			cr, err := newCompressReader(r.Body)
 			if err != nil {
+				s.logger.Errorf("failed to init compress reader for body, err: %s", err)
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}

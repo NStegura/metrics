@@ -18,10 +18,11 @@ import (
 )
 
 type Client struct {
-	client *http.Client
-	logger *logrus.Logger
-	URL    string
-	Key    string
+	client       *http.Client
+	logger       *logrus.Logger
+	URL          string
+	key          string
+	compressType string
 }
 
 func New(
@@ -37,10 +38,11 @@ func New(
 		}
 	}
 	return &Client{
-		client: &http.Client{},
-		URL:    addr,
-		Key:    key,
-		logger: logger,
+		client:       &http.Client{},
+		URL:          addr,
+		key:          key,
+		logger:       logger,
+		compressType: "gzip",
 	}, nil
 }
 
@@ -65,12 +67,11 @@ func NewRequestError(response *http.Response) error {
 	return &RequestError{response.Request.URL, body, response.StatusCode}
 }
 
-func (c *Client) UpdateGaugeMetric(name string, value float64, compressType string) error {
+func (c *Client) UpdateGaugeMetric(name string, value float64) error {
 	resp, err := c.Post(
 		fmt.Sprintf("%s/update/gauge/%s/%v", c.URL, name, value),
 		"text/plain",
 		nil,
-		compressType,
 	)
 	if err != nil {
 		return err
@@ -88,12 +89,11 @@ func (c *Client) UpdateGaugeMetric(name string, value float64, compressType stri
 	return nil
 }
 
-func (c *Client) UpdateCounterMetric(name string, value int64, compressType string) error {
+func (c *Client) UpdateCounterMetric(name string, value int64) error {
 	resp, err := c.Post(
 		fmt.Sprintf("%s/update/counter/%s/%v", c.URL, name, value),
 		"text/plain",
 		nil,
-		compressType,
 	)
 	if err != nil {
 		return err
@@ -111,12 +111,11 @@ func (c *Client) UpdateCounterMetric(name string, value int64, compressType stri
 	return nil
 }
 
-func (c *Client) UpdateMetric(jsonBody []byte, compressType string) error {
+func (c *Client) UpdateMetric(jsonBody []byte) error {
 	resp, err := c.Post(
 		fmt.Sprintf("%s/update/", c.URL),
 		"application/json",
 		jsonBody,
-		compressType,
 	)
 	if err != nil {
 		return err
@@ -134,7 +133,12 @@ func (c *Client) UpdateMetric(jsonBody []byte, compressType string) error {
 	return nil
 }
 
-func (c *Client) UpdateMetrics(metrics []Metrics, compressType string) error {
+func (c *Client) UpdateMetrics(metrics []Metrics) error {
+	if len(metrics) == 0 {
+		c.logger.Info("Empty metric result")
+		return nil
+	}
+
 	jsonBody, err := json.Marshal(metrics)
 	if err != nil {
 		return fmt.Errorf("failed to decode metrics, err %w", err)
@@ -144,7 +148,6 @@ func (c *Client) UpdateMetrics(metrics []Metrics, compressType string) error {
 		fmt.Sprintf("%s/updates/", c.URL),
 		"application/json",
 		jsonBody,
-		compressType,
 	)
 	if err != nil {
 		return err
@@ -166,23 +169,22 @@ func (c *Client) Post(
 	url string,
 	contentType string,
 	body []byte,
-	compressType string,
 ) (resp *http.Response, err error) {
 	headers := make(map[string]string)
 
-	if c.Key != "" {
-		h := hmac.New(sha256.New, []byte(c.Key))
+	if c.key != "" {
+		h := hmac.New(sha256.New, []byte(c.key))
 		h.Write(body)
 		headers["HashSHA256"] = hex.EncodeToString(h.Sum(nil))
 	}
 
-	if compressType == "gzip" {
+	if c.compressType == "gzip" {
 		body, err = compress(body)
 		if err != nil {
 			return nil, err
 		}
-		headers["Accept-Encoding"] = compressType
-		headers["Content-Encoding"] = compressType
+		headers["Accept-Encoding"] = c.compressType
+		headers["Content-Encoding"] = c.compressType
 	}
 	headers["Content-Type"] = contentType
 

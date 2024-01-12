@@ -86,5 +86,9 @@ func (c *Config) ParseFlags() (err error) {
 	c.ReportInterval = time.Second * time.Duration(reportIntervalIn)
 	c.PollInterval = time.Second * time.Duration(pollIntervalIn)
 	c.RateLimit = rateLimitIn
+
+	if c.RateLimit < 1 {
+		c.RateLimit = defaultRateLimit
+	}
 	return
 }
