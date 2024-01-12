@@ -174,7 +174,10 @@ func (c *Client) Post(
 
 	if c.key != "" {
 		h := hmac.New(sha256.New, []byte(c.key))
-		h.Write(body)
+		_, err = h.Write(body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to write body hash: %w", err)
+		}
 		headers["HashSHA256"] = hex.EncodeToString(h.Sum(nil))
 	}
 
