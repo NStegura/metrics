@@ -77,10 +77,10 @@ func (ag *Agent) Start() error {
 	var wg sync.WaitGroup
 
 	metricsCh := ag.collectMetrics(&wg)
+	metricsJobCh := ag.addMetricsToJobs(&wg, metricsCh)
 
-	ag.logger.Info(ag.config.RateLimit)
 	for w := 1; w <= ag.config.RateLimit; w++ {
-		ag.sendMetrics(w, &wg, metricsCh)
+		ag.sendMetrics(w, &wg, metricsJobCh)
 	}
 
 	wg.Wait()
@@ -88,40 +88,66 @@ func (ag *Agent) Start() error {
 }
 
 func (ag *Agent) collectMetrics(wg *sync.WaitGroup) chan models.Metrics {
-	metricsCh := make(chan models.Metrics, ag.config.RateLimit)
+	bufferCount := 10
+	metricsPollCh := make(chan models.Metrics, bufferCount)
 	pollTicker := time.NewTicker(ag.config.PollInterval)
 
 	wg.Add(1)
 	go func() {
-		defer close(metricsCh)
+		defer close(metricsPollCh)
 		defer pollTicker.Stop()
 		defer wg.Done()
 
 		var counter int64 = 0
 
 		for range pollTicker.C {
+			ag.logger.Info("get metrics tick")
 			counter++
 			statMetrics := ag.getMetricsFromStats(counter)
-			metricsCh <- statMetrics
+			metricsPollCh <- statMetrics
 			psMetrics := ag.getPSMetrics()
-			metricsCh <- psMetrics
+			metricsPollCh <- psMetrics
 		}
 	}()
 
-	return metricsCh
+	return metricsPollCh
 }
 
-func (ag *Agent) sendMetrics(workerID int, wg *sync.WaitGroup, metricsCh <-chan models.Metrics) {
-	ag.logger.Infof("start worker %v", workerID)
+func (ag *Agent) addMetricsToJobs(wg *sync.WaitGroup, metricsPollCh <-chan models.Metrics) chan models.Metrics {
+	metricsReportCh := make(chan models.Metrics, ag.config.RateLimit)
 	reportTicker := time.NewTicker(ag.config.ReportInterval)
 
 	wg.Add(1)
 	go func() {
+		defer close(metricsReportCh)
 		defer reportTicker.Stop()
 		defer wg.Done()
 
 		for range reportTicker.C {
-			err := ag.metricsCli.UpdateMetrics(metric.CastToMetrics(<-metricsCh))
+			ag.logger.Info("add jobs tick")
+			for len(metricsPollCh) > 0 {
+				metrics := <-metricsPollCh
+				if len(metricsReportCh) < cap(metricsReportCh) {
+					ag.logger.Info("add job metric")
+					metricsReportCh <- metrics
+				} else {
+					ag.logger.Info("skip job")
+				}
+			}
+		}
+	}()
+
+	return metricsReportCh
+}
+
+func (ag *Agent) sendMetrics(workerID int, wg *sync.WaitGroup, metricsCh <-chan models.Metrics) {
+	ag.logger.Infof("start worker %v", workerID)
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for metrics := range metricsCh {
+			err := ag.metricsCli.UpdateMetrics(metric.CastToMetrics(metrics))
 			if err != nil {
 				ag.logger.Error(err)
 			}
