@@ -114,12 +114,12 @@ func (ag *Agent) collectMetrics(wg *sync.WaitGroup) chan models.Metrics {
 }
 
 func (ag *Agent) addMetricsToJobs(wg *sync.WaitGroup, metricsPollCh <-chan models.Metrics) chan models.Metrics {
-	metricsReportCh := make(chan models.Metrics, ag.config.RateLimit)
+	jobs := make(chan models.Metrics, ag.config.RateLimit)
 	reportTicker := time.NewTicker(ag.config.ReportInterval)
 
 	wg.Add(1)
 	go func() {
-		defer close(metricsReportCh)
+		defer close(jobs)
 		defer reportTicker.Stop()
 		defer wg.Done()
 
@@ -127,17 +127,17 @@ func (ag *Agent) addMetricsToJobs(wg *sync.WaitGroup, metricsPollCh <-chan model
 			ag.logger.Info("add jobs tick")
 			for len(metricsPollCh) > 0 {
 				metrics := <-metricsPollCh
-				if len(metricsReportCh) < cap(metricsReportCh) {
+				select {
+				case jobs <- metrics:
 					ag.logger.Info("add job metric")
-					metricsReportCh <- metrics
-				} else {
+				default:
 					ag.logger.Info("skip job")
 				}
 			}
 		}
 	}()
 
-	return metricsReportCh
+	return jobs
 }
 
 func (ag *Agent) sendMetrics(workerID int, wg *sync.WaitGroup, metricsCh <-chan models.Metrics) {
