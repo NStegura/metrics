@@ -88,8 +88,7 @@ func (ag *Agent) Start() error {
 }
 
 func (ag *Agent) collectMetrics(wg *sync.WaitGroup) chan models.Metrics {
-	bufferCount := 10
-	metricsPollCh := make(chan models.Metrics, bufferCount)
+	metricsPollCh := make(chan models.Metrics, ag.config.RateLimit)
 	pollTicker := time.NewTicker(ag.config.PollInterval)
 
 	wg.Add(1)
