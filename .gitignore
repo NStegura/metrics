@@ -28,4 +28,3 @@ vendor/
 # Linters
 golangci-lint
 .golangci-lint
-.golangci.yml

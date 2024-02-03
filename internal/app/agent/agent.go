@@ -6,9 +6,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/shirou/gopsutil/v3/cpu"
+	"github.com/shirou/gopsutil/v3/mem"
+	"github.com/sirupsen/logrus"
+
 	"github.com/NStegura/metrics/internal/app/agent/models"
 	"github.com/NStegura/metrics/internal/clients/metric"
-	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -43,61 +46,118 @@ const (
 	randomValue models.MetricName = "RandomValue"
 	pollCount   models.MetricName = "PollCount"
 
+	totalMemory     models.MetricName = "TotalMemory"
+	freeMemory      models.MetricName = "FreeMemory"
+	CPUutilization1 models.MetricName = "CPUutilization1"
+
 	gauge    models.MetricType = "gauge"
 	counterT models.MetricType = "counter"
 
 	countGaugeMetrics   int = 27
 	countCounterMetrics int = 1
+	countGaugePsMetrics int = 3
 )
 
 type Agent struct {
-	config *Config
+	config     *Config
+	metricsCli *metric.Client
 
 	logger *logrus.Logger
 }
 
-func New(config *Config, logger *logrus.Logger) *Agent {
+func New(config *Config, metricsCli *metric.Client, logger *logrus.Logger) *Agent {
 	return &Agent{
-		config: config,
-		logger: logger,
+		config:     config,
+		metricsCli: metricsCli,
+		logger:     logger,
 	}
 }
 
 func (ag *Agent) Start() error {
-	metricsCli := metric.New(
-		ag.config.HTTPAddr,
-		ag.logger,
-	)
+	var wg sync.WaitGroup
 
-	var mu sync.Mutex
-	var metrics models.Metrics
+	metricsCh := ag.collectMetrics(&wg)
+	metricsJobCh := ag.addMetricsToJobs(&wg, metricsCh)
 
+	for w := 1; w <= ag.config.RateLimit; w++ {
+		ag.sendMetrics(w, &wg, metricsJobCh)
+	}
+
+	wg.Wait()
+	return nil
+}
+
+func (ag *Agent) collectMetrics(wg *sync.WaitGroup) chan models.Metrics {
+	metricsPollCh := make(chan models.Metrics, ag.config.RateLimit)
+	pollTicker := time.NewTicker(ag.config.PollInterval)
+
+	wg.Add(1)
 	go func() {
-		var counter int64 = 0
-		for {
-			counter++
-			time.Sleep(ag.config.PollInterval)
+		defer close(metricsPollCh)
+		defer pollTicker.Stop()
+		defer wg.Done()
 
-			stats := runtime.MemStats{}
-			runtime.ReadMemStats(&stats)
-			mu.Lock()
-			metrics = getMetricsFromStats(stats, counter)
-			mu.Unlock()
+		var counter int64 = 0
+
+		for range pollTicker.C {
+			ag.logger.Info("get metrics tick")
+			counter++
+			statMetrics := ag.getMetricsFromStats(counter)
+			metricsPollCh <- statMetrics
+			psMetrics := ag.getPSMetrics()
+			metricsPollCh <- psMetrics
 		}
 	}()
 
-	for {
-		time.Sleep(ag.config.ReportInterval)
-		mu.Lock()
-		err := metricsCli.UpdateMetrics(metric.CastToMetrics(metrics), "gzip")
-		if err != nil {
-			ag.logger.Error(err)
-		}
-		mu.Unlock()
-	}
+	return metricsPollCh
 }
 
-func getMetricsFromStats(stats runtime.MemStats, counter int64) models.Metrics {
+func (ag *Agent) addMetricsToJobs(wg *sync.WaitGroup, metricsPollCh <-chan models.Metrics) chan models.Metrics {
+	jobs := make(chan models.Metrics, ag.config.RateLimit)
+	reportTicker := time.NewTicker(ag.config.ReportInterval)
+
+	wg.Add(1)
+	go func() {
+		defer close(jobs)
+		defer reportTicker.Stop()
+		defer wg.Done()
+
+		for range reportTicker.C {
+			ag.logger.Info("add jobs tick")
+			for len(metricsPollCh) > 0 {
+				metrics := <-metricsPollCh
+				select {
+				case jobs <- metrics:
+					ag.logger.Info("add job metric")
+				default:
+					ag.logger.Info("skip job")
+				}
+			}
+		}
+	}()
+
+	return jobs
+}
+
+func (ag *Agent) sendMetrics(workerID int, wg *sync.WaitGroup, metricsCh <-chan models.Metrics) {
+	ag.logger.Infof("start worker %v", workerID)
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for metrics := range metricsCh {
+			err := ag.metricsCli.UpdateMetrics(metric.CastToMetrics(metrics))
+			if err != nil {
+				ag.logger.Error(err)
+			}
+		}
+	}()
+}
+
+func (ag *Agent) getMetricsFromStats(counter int64) models.Metrics {
+	stats := runtime.MemStats{}
+	runtime.ReadMemStats(&stats)
+
 	gaugeMetrics := make(map[models.MetricName]*models.GaugeMetric, countGaugeMetrics)
 	counterMetrics := make(map[models.MetricName]*models.CounterMetric, countCounterMetrics)
 	metrics := models.Metrics{GaugeMetrics: gaugeMetrics, CounterMetrics: counterMetrics}
@@ -142,5 +202,29 @@ func getMetricsFromStats(stats runtime.MemStats, counter int64) models.Metrics {
 
 	metrics.GaugeMetrics[randomValue] = &models.GaugeMetric{Name: randomValue, Type: gauge, Value: rand.Float64()}
 	metrics.CounterMetrics[pollCount] = &models.CounterMetric{Name: pollCount, Type: counterT, Value: counter}
+	return metrics
+}
+
+func (ag *Agent) getPSMetrics() (m models.Metrics) {
+	gaugeMetrics := make(map[models.MetricName]*models.GaugeMetric, countGaugePsMetrics)
+	metrics := models.Metrics{GaugeMetrics: gaugeMetrics}
+
+	v, err := mem.VirtualMemory()
+	if err != nil {
+		ag.logger.Errorf("failed to collect virtual mem stats, %s", err)
+	} else {
+		metrics.GaugeMetrics[totalMemory] = &models.GaugeMetric{
+			Name: totalMemory, Type: gauge, Value: float64(v.Total)}
+		metrics.GaugeMetrics[freeMemory] = &models.GaugeMetric{
+			Name: freeMemory, Type: gauge, Value: float64(v.Free)}
+	}
+
+	cpuStat, err := cpu.Percent(0, true)
+	if err != nil {
+		ag.logger.Errorf("failed to collect virtual cpu stats, %s", err)
+	} else {
+		metrics.GaugeMetrics[CPUutilization1] = &models.GaugeMetric{
+			Name: CPUutilization1, Type: gauge, Value: cpuStat[0]}
+	}
 	return metrics
 }

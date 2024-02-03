@@ -7,11 +7,12 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/NStegura/metrics/internal/business"
-	"github.com/NStegura/metrics/internal/repo"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/NStegura/metrics/internal/business"
+	"github.com/NStegura/metrics/internal/repo"
 )
 
 func testRequest(t *testing.T, ts *httptest.Server, method, path string) (*http.Response, string) {

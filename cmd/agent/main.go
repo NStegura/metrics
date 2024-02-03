@@ -4,8 +4,11 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/NStegura/metrics/internal/app/agent"
+	"github.com/NStegura/metrics/internal/clients/metric"
+
 	"github.com/sirupsen/logrus"
+
+	"github.com/NStegura/metrics/internal/app/agent"
 )
 
 func configureLogger(config *agent.Config) (*logrus.Logger, error) {
@@ -29,8 +32,15 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	ag := agent.New(config, logger)
+	metricsCli, err := metric.New(
+		config.HTTPAddr,
+		config.MetricCliKey,
+		logger,
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	ag := agent.New(config, metricsCli, logger)
 	if err = ag.Start(); err != nil {
 		logger.Fatal(err)
 	}

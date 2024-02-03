@@ -11,10 +11,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/NStegura/metrics/internal/app/metricsapi"
 	"github.com/NStegura/metrics/internal/business"
 	"github.com/NStegura/metrics/internal/repo"
-	"github.com/sirupsen/logrus"
 )
 
 const (

@@ -9,8 +9,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/NStegura/metrics/internal/repo/models"
 	"github.com/sirupsen/logrus"
+
+	"github.com/NStegura/metrics/internal/repo/models"
 )
 
 const (

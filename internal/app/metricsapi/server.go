@@ -10,11 +10,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/sirupsen/logrus"
+
 	"github.com/NStegura/metrics/internal/app/metricsapi/models"
 	blModels "github.com/NStegura/metrics/internal/business/models"
 	"github.com/NStegura/metrics/internal/customerrors"
-	"github.com/go-chi/chi/v5"
-	"github.com/sirupsen/logrus"
 )
 
 type contentType string
@@ -65,6 +66,7 @@ func (s *APIServer) Start() error {
 func (s *APIServer) configRouter() {
 	s.router.Use(s.requestLogger)
 	s.router.Use(s.gzipMiddleware)
+	s.router.Use(s.hashValidation)
 
 	s.router.Get(`/`, s.getAllMetrics())
 	s.router.Post(`/updates/`, s.updateAllMetrics())

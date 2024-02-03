@@ -3,31 +3,47 @@ package metric
 import (
 	"bytes"
 	"compress/gzip"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/sirupsen/logrus"
 )
 
-type client struct {
-	client *http.Client
-	logger *logrus.Logger
-	URL    string
+type Client struct {
+	client       *http.Client
+	logger       *logrus.Logger
+	URL          string
+	key          string
+	compressType string
 }
 
 func New(
-	url string,
+	addr string,
+	key string,
 	logger *logrus.Logger,
-) *client {
-	return &client{
-		client: &http.Client{},
-		URL:    url,
-		logger: logger,
+) (*Client, error) {
+	var err error
+	if !strings.HasPrefix(addr, "http") {
+		addr, err = url.JoinPath("http:", addr)
+		if err != nil {
+			return nil, fmt.Errorf("failed to init client, %w", err)
+		}
 	}
+	return &Client{
+		client:       &http.Client{},
+		URL:          addr,
+		key:          key,
+		logger:       logger,
+		compressType: "gzip",
+	}, nil
 }
 
 type RequestError struct {
@@ -51,12 +67,11 @@ func NewRequestError(response *http.Response) error {
 	return &RequestError{response.Request.URL, body, response.StatusCode}
 }
 
-func (c *client) UpdateGaugeMetric(name string, value float64, compressType string) error {
+func (c *Client) UpdateGaugeMetric(name string, value float64) error {
 	resp, err := c.Post(
 		fmt.Sprintf("%s/update/gauge/%s/%v", c.URL, name, value),
 		"text/plain",
 		nil,
-		compressType,
 	)
 	if err != nil {
 		return err
@@ -74,12 +89,11 @@ func (c *client) UpdateGaugeMetric(name string, value float64, compressType stri
 	return nil
 }
 
-func (c *client) UpdateCounterMetric(name string, value int64, compressType string) error {
+func (c *Client) UpdateCounterMetric(name string, value int64) error {
 	resp, err := c.Post(
 		fmt.Sprintf("%s/update/counter/%s/%v", c.URL, name, value),
 		"text/plain",
 		nil,
-		compressType,
 	)
 	if err != nil {
 		return err
@@ -97,12 +111,11 @@ func (c *client) UpdateCounterMetric(name string, value int64, compressType stri
 	return nil
 }
 
-func (c *client) UpdateMetric(jsonBody []byte, compressType string) error {
+func (c *Client) UpdateMetric(jsonBody []byte) error {
 	resp, err := c.Post(
 		fmt.Sprintf("%s/update/", c.URL),
 		"application/json",
 		jsonBody,
-		compressType,
 	)
 	if err != nil {
 		return err
@@ -120,7 +133,12 @@ func (c *client) UpdateMetric(jsonBody []byte, compressType string) error {
 	return nil
 }
 
-func (c *client) UpdateMetrics(metrics []Metrics, compressType string) error {
+func (c *Client) UpdateMetrics(metrics []Metrics) error {
+	if len(metrics) == 0 {
+		c.logger.Info("Empty metric result")
+		return nil
+	}
+
 	jsonBody, err := json.Marshal(metrics)
 	if err != nil {
 		return fmt.Errorf("failed to decode metrics, err %w", err)
@@ -130,7 +148,6 @@ func (c *client) UpdateMetrics(metrics []Metrics, compressType string) error {
 		fmt.Sprintf("%s/updates/", c.URL),
 		"application/json",
 		jsonBody,
-		compressType,
 	)
 	if err != nil {
 		return err
@@ -148,21 +165,29 @@ func (c *client) UpdateMetrics(metrics []Metrics, compressType string) error {
 	return nil
 }
 
-func (c *client) Post(
+func (c *Client) Post(
 	url string,
 	contentType string,
 	body []byte,
-	compressType string,
 ) (resp *http.Response, err error) {
 	headers := make(map[string]string)
 
-	if compressType == "gzip" {
+	if c.key != "" {
+		h := hmac.New(sha256.New, []byte(c.key))
+		_, err = h.Write(body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to write body hash: %w", err)
+		}
+		headers["HashSHA256"] = hex.EncodeToString(h.Sum(nil))
+	}
+
+	if c.compressType == "gzip" {
 		body, err = compress(body)
 		if err != nil {
 			return nil, err
 		}
-		headers["Accept-Encoding"] = compressType
-		headers["Content-Encoding"] = compressType
+		headers["Accept-Encoding"] = c.compressType
+		headers["Content-Encoding"] = c.compressType
 	}
 	headers["Content-Type"] = contentType
 
@@ -184,7 +209,7 @@ func (c *client) Post(
 	return resp, nil
 }
 
-func (c *client) DoWithRetry(req *http.Request) (resp *http.Response, err error) {
+func (c *Client) DoWithRetry(req *http.Request) (resp *http.Response, err error) {
 	for _, backoff := range c.scheduleBackoffAttempts() {
 		resp, err = c.DoWithLog(req)
 		if err != nil {
@@ -192,7 +217,7 @@ func (c *client) DoWithRetry(req *http.Request) (resp *http.Response, err error)
 			return
 		}
 
-		if resp.StatusCode < 500 {
+		if resp.StatusCode < http.StatusInternalServerError {
 			break
 		}
 		time.Sleep(backoff)
@@ -201,7 +226,7 @@ func (c *client) DoWithRetry(req *http.Request) (resp *http.Response, err error)
 	return
 }
 
-func (c *client) DoWithLog(req *http.Request) (resp *http.Response, err error) {
+func (c *Client) DoWithLog(req *http.Request) (resp *http.Response, err error) {
 	start := time.Now()
 	resp, err = c.client.Do(req)
 	duration := time.Since(start)
@@ -224,7 +249,7 @@ func (c *client) DoWithLog(req *http.Request) (resp *http.Response, err error) {
 	return
 }
 
-func (c *client) scheduleBackoffAttempts() []time.Duration {
+func (c *Client) scheduleBackoffAttempts() []time.Duration {
 	return []time.Duration{
 		1 * time.Second,
 		3 * time.Second,
