@@ -4,6 +4,7 @@ go 1.21.3
 
 require (
 	github.com/go-chi/chi/v5 v5.0.10
+	github.com/golang/mock v1.6.0
 	github.com/jackc/pgx/v5 v5.5.1
 	github.com/pressly/goose/v3 v3.16.0
 	github.com/shirou/gopsutil/v3 v3.23.12

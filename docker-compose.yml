@@ -4,7 +4,7 @@ services:
   metrics-api:
     build:
       context: .
-      dockerfile: DockerfileApi
+      dockerfile: api.dockerfile
     restart: on-failure
     ports:
       - '8082:8082'
@@ -29,7 +29,7 @@ services:
   metrics-agent:
     build:
       context: .
-      dockerfile: DockerfileAgent
+      dockerfile: agent.dockerfile
     restart: on-failure
     working_dir: "$PWD"
     depends_on:

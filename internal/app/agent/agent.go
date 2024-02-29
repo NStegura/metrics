@@ -60,12 +60,12 @@ const (
 
 type Agent struct {
 	config     *Config
-	metricsCli *metric.Client
+	metricsCli MetricCli
 
 	logger *logrus.Logger
 }
 
-func New(config *Config, metricsCli *metric.Client, logger *logrus.Logger) *Agent {
+func New(config *Config, metricsCli MetricCli, logger *logrus.Logger) *Agent {
 	return &Agent{
 		config:     config,
 		metricsCli: metricsCli,

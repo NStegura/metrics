@@ -39,6 +39,27 @@ rollbackmigrations:
 	goose -dir=internal/repo/internal/db/migrations postgres "host=localhost port=54323 user=usr password=psswrd dbname=metrics sslmode=disable" reset
 
 
+## TESTS
+
+MOCKS_DESTINATION=mocks
+.PHONY: mocks
+# put the files with interfaces you'd like to mock in prerequisites
+# wildcards are allowed
+mocks: ./internal/app/agent/imetric.go
+	@echo "Generating mocks..."
+	@rm -rf $(MOCKS_DESTINATION)
+	@for file in $^; do mockgen -source=$$file -destination=$(MOCKS_DESTINATION)/$$file; done
+
+.PHONY: test
+test:
+	go install gotest.tools/gotestsum@latest
+	gotestsum --format pkgname -- --bench=. -coverprofile=cover.out ./...
+
+.PHONY: bench
+bench:
+	go test -bench . -benchmem ./...
+
+
 ## LINTERS
 GOLANGCI_LINT_CACHE?=/tmp/praktikum-golangci-lint-cache
 
@@ -50,7 +71,7 @@ fmt:
 
 .PHONY: lint
 lint:
-	golangci-lint run
+	golangci-lint run -c .golangci.yml --out-format=colored-line-number --sort-results
 
 .PHONY: lint-report
 lint-report: _golangci-lint-rm-unformatted-report
