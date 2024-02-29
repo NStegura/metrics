@@ -2,14 +2,16 @@ package metricsapi
 
 import (
 	"context"
-	"github.com/NStegura/metrics/internal/business"
-	"github.com/NStegura/metrics/internal/repo"
-	"github.com/sirupsen/logrus"
-	"github.com/stretchr/testify/require"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/require"
+
+	"github.com/NStegura/metrics/internal/business"
+	"github.com/NStegura/metrics/internal/repo"
 )
 
 type benchHelper struct {

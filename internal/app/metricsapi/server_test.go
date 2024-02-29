@@ -3,11 +3,12 @@ package metricsapi
 import (
 	"bytes"
 	"context"
-	"github.com/golang/mock/gomock"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/golang/mock/gomock"
 
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"

@@ -4,13 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/NStegura/metrics/internal/monitoring/pprof"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"sync"
 	"time"
+
+	"github.com/NStegura/metrics/internal/monitoring/pprof"
 
 	"github.com/sirupsen/logrus"
 
