@@ -2,38 +2,21 @@ package metricsapi
 
 import (
 	"context"
+	"github.com/NStegura/metrics/internal/business"
+	"github.com/NStegura/metrics/internal/repo"
+	"github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/require"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-
-	"github.com/sirupsen/logrus"
-	"github.com/stretchr/testify/require"
-
-	"github.com/NStegura/metrics/internal/business"
-	"github.com/NStegura/metrics/internal/repo"
 )
 
-func testRequestBench(t *testing.B, ts *httptest.Server, method, path string, body io.Reader) (*http.Response, string) {
-	t.Helper()
-	req, err := http.NewRequest(method, ts.URL+path, body)
-	require.NoError(t, err)
-
-	resp, err := ts.Client().Do(req)
-	require.NoError(t, err)
-	defer func() {
-		if err := resp.Body.Close(); err != nil {
-			t.Log(err)
-		}
-	}()
-
-	respBody, err := io.ReadAll(resp.Body)
-	require.NoError(t, err)
-
-	return resp, string(respBody)
+type benchHelper struct {
+	ts *httptest.Server
 }
 
-func BenchmarkGetAllMetricsHandler(b *testing.B) {
+func initBenchHelper() *benchHelper {
 	ctx := context.TODO()
 	l := logrus.New()
 	r, _ := repo.New(ctx, "", 100, "", false, l)
@@ -42,10 +25,40 @@ func BenchmarkGetAllMetricsHandler(b *testing.B) {
 	server.configRouter()
 
 	ts := httptest.NewServer(server.router)
-	defer ts.Close()
+	return &benchHelper{
+		ts: ts,
+	}
+}
 
-	testRequestBench(b, ts, "POST", "/update/gauge/SomeGaugeMetric/1", nil)
-	testRequestBench(b, ts, "POST", "/update/counter/SomeCounterMetric/1", nil)
+func (bh *benchHelper) Request(t *testing.B, method, path string, body io.Reader) (int, string) {
+	t.Helper()
+	req, err := http.NewRequest(method, bh.ts.URL+path, body)
+	require.NoError(t, err)
+
+	resp, _ := bh.ts.Client().Do(req)
+	//require.NoError(t, err)
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			t.Log(err)
+		}
+	}()
+
+	respBody, _ := io.ReadAll(resp.Body)
+	//require.NoError(t, err)
+
+	return resp.StatusCode, string(respBody)
+}
+
+func (bh *benchHelper) finish() {
+	bh.ts.Close()
+}
+
+func BenchmarkGetAllMetricsHandler(b *testing.B) {
+	bh := initBenchHelper()
+	defer bh.finish()
+
+	bh.Request(b, "POST", "/update/gauge/SomeGaugeMetric/1", nil)
+	bh.Request(b, "POST", "/update/counter/SomeCounterMetric/1", nil)
 
 	type want struct {
 		statusCode int
@@ -65,11 +78,6 @@ func BenchmarkGetAllMetricsHandler(b *testing.B) {
 
 	b.ResetTimer()
 	b.Run("", func(b *testing.B) {
-		resp, _ := testRequestBench(b, ts, tests.method, tests.url, nil)
-		defer func() {
-			if err := resp.Body.Close(); err != nil {
-				b.Log(err)
-			}
-		}()
+		bh.Request(b, tests.method, tests.url, nil)
 	})
 }

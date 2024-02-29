@@ -3,6 +3,7 @@ package metricsapi
 import (
 	"bytes"
 	"context"
+	"github.com/golang/mock/gomock"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -16,12 +17,17 @@ import (
 	"github.com/NStegura/metrics/internal/repo"
 )
 
-func testRequest(t *testing.T, ts *httptest.Server, method, path string, body io.Reader) (*http.Response, string) {
+type testHelper struct {
+	ctrl *gomock.Controller
+	ts   *httptest.Server
+}
+
+func (th *testHelper) Request(t *testing.T, method, path string, body io.Reader) (int, string) {
 	t.Helper()
-	req, err := http.NewRequest(method, ts.URL+path, body)
+	req, err := http.NewRequest(method, th.ts.URL+path, body)
 	require.NoError(t, err)
 
-	resp, err := ts.Client().Do(req)
+	resp, err := th.ts.Client().Do(req)
 	require.NoError(t, err)
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
@@ -32,10 +38,12 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string, body io
 	respBody, err := io.ReadAll(resp.Body)
 	require.NoError(t, err)
 
-	return resp, string(respBody)
+	return resp.StatusCode, string(respBody)
 }
 
-func TestUpdateGaugeMetricHandler(t *testing.T) {
+func initTestHelper(t *testing.T) *testHelper {
+	t.Helper()
+	ctrl := gomock.NewController(t)
 	ctx := context.TODO()
 	l := logrus.New()
 	r, err := repo.New(ctx, "", 100, "", false, l)
@@ -45,7 +53,20 @@ func TestUpdateGaugeMetricHandler(t *testing.T) {
 	server.configRouter()
 
 	ts := httptest.NewServer(server.router)
-	defer ts.Close()
+	return &testHelper{
+		ctrl: ctrl,
+		ts:   ts,
+	}
+}
+
+func (th *testHelper) finish() {
+	th.ts.Close()
+	th.ctrl.Finish()
+}
+
+func TestUpdateGaugeMetricHandler(t *testing.T) {
+	th := initTestHelper(t)
+	defer th.finish()
 
 	type want struct {
 		statusCode int
@@ -84,27 +105,14 @@ func TestUpdateGaugeMetricHandler(t *testing.T) {
 		},
 	}
 	for _, v := range tests {
-		resp, _ := testRequest(t, ts, "POST", v.url, bytes.NewBufferString(v.body))
-		defer func() {
-			if err := resp.Body.Close(); err != nil {
-				t.Log(err)
-			}
-		}()
-		assert.Equal(t, v.want.statusCode, resp.StatusCode)
+		statusCode, _ := th.Request(t, "POST", v.url, bytes.NewBufferString(v.body))
+		assert.Equal(t, v.want.statusCode, statusCode)
 	}
 }
 
 func TestUpdateCounterMetricHandler(t *testing.T) {
-	ctx := context.TODO()
-	l := logrus.New()
-	r, err := repo.New(ctx, "", 100, "", false, l)
-	require.NoError(t, err)
-	businessLayer := business.New(r, l)
-	server := New(NewConfig(), businessLayer, l)
-	server.configRouter()
-
-	ts := httptest.NewServer(server.router)
-	defer ts.Close()
+	th := initTestHelper(t)
+	defer th.finish()
 
 	type want struct {
 		statusCode int
@@ -143,31 +151,18 @@ func TestUpdateCounterMetricHandler(t *testing.T) {
 		},
 	}
 	for _, v := range tests {
-		resp, _ := testRequest(t, ts, "POST", v.url, bytes.NewBufferString(v.body))
-		defer func() {
-			if err := resp.Body.Close(); err != nil {
-				t.Log(err)
-			}
-		}()
-		assert.Equal(t, v.want.statusCode, resp.StatusCode)
+		statusCode, _ := th.Request(t, "POST", v.url, bytes.NewBufferString(v.body))
+		assert.Equal(t, v.want.statusCode, statusCode)
 	}
 }
 
 func TestUpdateMetricHandler(t *testing.T) {
-	ctx := context.TODO()
-	l := logrus.New()
-	r, err := repo.New(ctx, "", 100, "", false, l)
-	require.NoError(t, err)
-	businessLayer := business.New(r, l)
-	server := New(NewConfig(), businessLayer, l)
-	server.configRouter()
+	th := initTestHelper(t)
+	defer th.finish()
 
 	successBodyGauge := `{"value": 1.002, "type": "gauge", "id": "testGaugeMetric"}`
 	successBodyCounter := `{"delta": 1, "type": "counter", "id": "testCounterMetric"}`
 	unknownMetricTypeBody := `{"delta": 1, "type": "sdssa", "id": "testCounterMetric"}`
-
-	ts := httptest.NewServer(server.router)
-	defer ts.Close()
 
 	type want struct {
 		statusCode int
@@ -209,27 +204,14 @@ func TestUpdateMetricHandler(t *testing.T) {
 		},
 	}
 	for _, v := range tests {
-		resp, _ := testRequest(t, ts, "POST", v.url, bytes.NewBufferString(v.body))
-		defer func() {
-			if err := resp.Body.Close(); err != nil {
-				t.Log(err)
-			}
-		}()
-		assert.Equal(t, v.want.statusCode, resp.StatusCode)
+		statusCode, _ := th.Request(t, "POST", v.url, bytes.NewBufferString(v.body))
+		assert.Equal(t, v.want.statusCode, statusCode)
 	}
 }
 
 func TestGetCounterMetricHandler__empty(t *testing.T) {
-	ctx := context.TODO()
-	l := logrus.New()
-	r, err := repo.New(ctx, "", 100, "", false, l)
-	require.NoError(t, err)
-	businessLayer := business.New(r, l)
-	server := New(NewConfig(), businessLayer, l)
-	server.configRouter()
-
-	ts := httptest.NewServer(server.router)
-	defer ts.Close()
+	th := initTestHelper(t)
+	defer th.finish()
 
 	type want struct {
 		statusCode int
@@ -251,29 +233,16 @@ func TestGetCounterMetricHandler__empty(t *testing.T) {
 		},
 	}
 	for _, v := range tests {
-		resp, _ := testRequest(t, ts, v.method, v.url, nil)
-		defer func() {
-			if err := resp.Body.Close(); err != nil {
-				t.Log(err)
-			}
-		}()
-		assert.Equal(t, v.want.statusCode, resp.StatusCode)
+		statusCode, _ := th.Request(t, v.method, v.url, nil)
+		assert.Equal(t, v.want.statusCode, statusCode)
 	}
 }
 
 func TestGetCounterMetricHandler__ok(t *testing.T) {
-	ctx := context.TODO()
-	l := logrus.New()
-	r, err := repo.New(ctx, "", 100, "", false, l)
-	require.NoError(t, err)
-	businessLayer := business.New(r, l)
-	server := New(NewConfig(), businessLayer, l)
-	server.configRouter()
+	th := initTestHelper(t)
+	defer th.finish()
 
-	ts := httptest.NewServer(server.router)
-	defer ts.Close()
-
-	testRequest(t, ts, "POST", "/update/counter/SomeCounterMetric/1", nil)
+	th.Request(t, "POST", "/update/counter/SomeCounterMetric/1", nil)
 
 	type want struct {
 		statusCode int
@@ -295,27 +264,14 @@ func TestGetCounterMetricHandler__ok(t *testing.T) {
 		},
 	}
 	for _, v := range tests {
-		resp, _ := testRequest(t, ts, v.method, v.url, nil)
-		defer func() {
-			if err := resp.Body.Close(); err != nil {
-				t.Log(err)
-			}
-		}()
-		assert.Equal(t, v.want.statusCode, resp.StatusCode)
+		statusCode, _ := th.Request(t, v.method, v.url, nil)
+		assert.Equal(t, v.want.statusCode, statusCode)
 	}
 }
 
 func TestGetGaugeMetricHandler__empty(t *testing.T) {
-	ctx := context.TODO()
-	l := logrus.New()
-	r, err := repo.New(ctx, "", 100, "", false, l)
-	require.NoError(t, err)
-	businessLayer := business.New(r, l)
-	server := New(NewConfig(), businessLayer, l)
-	server.configRouter()
-
-	ts := httptest.NewServer(server.router)
-	defer ts.Close()
+	th := initTestHelper(t)
+	defer th.finish()
 
 	type want struct {
 		statusCode int
@@ -337,29 +293,16 @@ func TestGetGaugeMetricHandler__empty(t *testing.T) {
 		},
 	}
 	for _, v := range tests {
-		resp, _ := testRequest(t, ts, v.method, v.url, nil)
-		defer func() {
-			if err := resp.Body.Close(); err != nil {
-				t.Log(err)
-			}
-		}()
-		assert.Equal(t, v.want.statusCode, resp.StatusCode)
+		statusCode, _ := th.Request(t, v.method, v.url, nil)
+		assert.Equal(t, v.want.statusCode, statusCode)
 	}
 }
 
 func TestGetGaugeMetricHandler__ok(t *testing.T) {
-	ctx := context.TODO()
-	l := logrus.New()
-	r, err := repo.New(ctx, "", 100, "", false, l)
-	require.NoError(t, err)
-	businessLayer := business.New(r, l)
-	server := New(NewConfig(), businessLayer, l)
-	server.configRouter()
+	th := initTestHelper(t)
+	defer th.finish()
 
-	ts := httptest.NewServer(server.router)
-	defer ts.Close()
-
-	testRequest(t, ts, "POST", "/update/gauge/SomeGaugeMetric/1", nil)
+	th.Request(t, "POST", "/update/gauge/SomeGaugeMetric/1", nil)
 
 	type want struct {
 		statusCode int
@@ -381,30 +324,17 @@ func TestGetGaugeMetricHandler__ok(t *testing.T) {
 		},
 	}
 	for _, v := range tests {
-		resp, _ := testRequest(t, ts, v.method, v.url, nil)
-		defer func() {
-			if err := resp.Body.Close(); err != nil {
-				t.Log(err)
-			}
-		}()
-		assert.Equal(t, v.want.statusCode, resp.StatusCode)
+		statusCode, _ := th.Request(t, v.method, v.url, nil)
+		assert.Equal(t, v.want.statusCode, statusCode)
 	}
 }
 
 func TestGetAllMetricsHandler__ok(t *testing.T) {
-	ctx := context.TODO()
-	l := logrus.New()
-	r, err := repo.New(ctx, "", 100, "", false, l)
-	require.NoError(t, err)
-	businessLayer := business.New(r, l)
-	server := New(NewConfig(), businessLayer, l)
-	server.configRouter()
+	th := initTestHelper(t)
+	defer th.finish()
 
-	ts := httptest.NewServer(server.router)
-	defer ts.Close()
-
-	testRequest(t, ts, "POST", "/update/gauge/SomeGaugeMetric/1", nil)
-	testRequest(t, ts, "POST", "/update/counter/SomeCounterMetric/1", nil)
+	th.Request(t, "POST", "/update/gauge/SomeGaugeMetric/1", nil)
+	th.Request(t, "POST", "/update/counter/SomeCounterMetric/1", nil)
 
 	type want struct {
 		statusCode int
@@ -426,27 +356,14 @@ func TestGetAllMetricsHandler__ok(t *testing.T) {
 		},
 	}
 	for _, v := range tests {
-		resp, _ := testRequest(t, ts, v.method, v.url, nil)
-		defer func() {
-			if err := resp.Body.Close(); err != nil {
-				t.Log(err)
-			}
-		}()
-		assert.Equal(t, v.want.statusCode, resp.StatusCode)
+		statusCode, _ := th.Request(t, v.method, v.url, nil)
+		assert.Equal(t, v.want.statusCode, statusCode)
 	}
 }
 
 func TestGetAllMetricsHandler__empty(t *testing.T) {
-	ctx := context.TODO()
-	l := logrus.New()
-	r, err := repo.New(ctx, "", 100, "", false, l)
-	require.NoError(t, err)
-	businessLayer := business.New(r, l)
-	server := New(NewConfig(), businessLayer, l)
-	server.configRouter()
-
-	ts := httptest.NewServer(server.router)
-	defer ts.Close()
+	th := initTestHelper(t)
+	defer th.finish()
 
 	type want struct {
 		statusCode int
@@ -468,12 +385,7 @@ func TestGetAllMetricsHandler__empty(t *testing.T) {
 		},
 	}
 	for _, v := range tests {
-		resp, _ := testRequest(t, ts, v.method, v.url, nil)
-		defer func() {
-			if err := resp.Body.Close(); err != nil {
-				t.Log(err)
-			}
-		}()
-		assert.Equal(t, v.want.statusCode, resp.StatusCode)
+		statusCode, _ := th.Request(t, v.method, v.url, nil)
+		assert.Equal(t, v.want.statusCode, statusCode)
 	}
 }

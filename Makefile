@@ -53,7 +53,7 @@ mocks: ./internal/app/agent/imetric.go
 .PHONY: test
 test:
 	go install gotest.tools/gotestsum@latest
-	gotestsum --format pkgname -- --bench=. -coverprofile=cover.out ./...
+	gotestsum --format pkgname -- -coverprofile=cover.out ./...
 
 .PHONY: bench
 bench:
