@@ -61,8 +61,6 @@ bench:
 
 
 ## LINTERS
-GOLANGCI_LINT_CACHE?=/tmp/praktikum-golangci-lint-cache
-
 .PHONY: fmt
 fmt:
 	go fmt ./...
@@ -73,32 +71,29 @@ fmt:
 lint:
 	golangci-lint run -c .golangci.yml --out-format=colored-line-number --sort-results
 
-.PHONY: lint-report
-lint-report: _golangci-lint-rm-unformatted-report
+## PROFILE
 
-.PHONY: _golangci-lint-reports-mkdir
-_golangci-lint-reports-mkdir:
-	mkdir -p ./golangci-lint
+.PHONY: pprofcpu
+pprofcpu:
+	go tool pprof -http=":9090" -seconds=30 http://localhost:8081/debug/pprof/profile
 
-.PHONY: _golangci-lint-run
-_golangci-lint-run: _golangci-lint-reports-mkdir
-	-docker run --rm \
-    -v $(shell pwd):/app \
-    -v $(GOLANGCI_LINT_CACHE):/root/.cache \
-    -w /app \
-    golangci/golangci-lint:v1.55.2 \
-        golangci-lint run \
-            -c .golangci.yml \
-	> ./golangci-lint/report-unformatted.json
+.PHONY: pprofmem
+pprofmem:
+	go tool pprof -http=":9090" -seconds=30 http://localhost:8081/debug/pprof/heap
 
-.PHONY: _golangci-lint-format-report
-_golangci-lint-format-report: _golangci-lint-run
-	cat ./golangci-lint/report-unformatted.json | jq > ./golangci-lint/report.json
+.PHONY: pprofmemfile # save to file and check
+pprofmem:
+	curl -sK -v http://localhost:8081/debug/pprof/heap > heap.out
+	go tool pprof -http=":9090" -seconds=30 http://localhost:8081/debug/pprof/heap
 
-.PHONY: _golangci-lint-rm-unformatted-report
-_golangci-lint-rm-unformatted-report: _golangci-lint-format-report
-	rm ./golangci-lint/report-unformatted.json
+.PHONY: pprofconsolecpu # save to file and check
+pprofconsolecpu:
+	go tool pprof -seconds=30 http://localhost:8081/debug/pprof/profile
 
-.PHONY: lint-clean
-golangci-lint-clean:
-	sudo rm -rf ./golangci-lint
+.PHONY: pprofsavemem # example save to file
+pprofsavemem:
+	curl http://localhost:8081/debug/pprof/heap > ./profiles/base.pprof
+
+.PHONY: pprofcompare # example compare
+pprofcompare:
+	pprof -top -diff_base=profiles/base.pprof profiles/result.pprof

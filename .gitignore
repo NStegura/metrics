@@ -24,7 +24,3 @@ vendor/
 .vscode
 
 *tmp
-
-# Linters
-golangci-lint
-.golangci-lint
