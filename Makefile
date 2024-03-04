@@ -92,8 +92,8 @@ pprofconsolecpu:
 
 .PHONY: pprofsavemem # example save to file
 pprofsavemem:
-	curl http://localhost:8081/debug/pprof/heap > ./profiles/base.pprof
+	curl http://localhost:8081/debug/pprof/heap > ./profiles/result.pprof
 
 .PHONY: pprofcompare # example compare
 pprofcompare:
-	pprof -top -diff_base=profiles/base.pprof profiles/result.pprof
+	go tool pprof -top -diff_base=profiles/base.pprof profiles/result.pprof

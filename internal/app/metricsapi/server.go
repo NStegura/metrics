@@ -2,7 +2,6 @@ package metricsapi
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -11,6 +10,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/mailru/easyjson"
 	"github.com/sirupsen/logrus"
 
 	"github.com/NStegura/metrics/internal/app/metricsapi/models"
@@ -133,9 +133,9 @@ func (s *APIServer) updateAllMetrics() http.HandlerFunc {
 		ctx, cancel := context.WithTimeout(r.Context(), timeout)
 		defer cancel()
 
-		var metrics []models.Metrics
+		var metrics models.MetricsList
 
-		if err := json.NewDecoder(r.Body).Decode(&metrics); err != nil {
+		if err := easyjson.UnmarshalFromReader(r.Body, &metrics); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -297,7 +297,7 @@ func (s *APIServer) updateMetric() http.HandlerFunc {
 
 		var metric models.Metrics
 
-		if err := json.NewDecoder(r.Body).Decode(&metric); err != nil {
+		if err := easyjson.UnmarshalFromReader(r.Body, &metric); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -346,7 +346,7 @@ func (s *APIServer) getMetric() http.HandlerFunc {
 
 		var metric models.Metrics
 
-		if err := json.NewDecoder(r.Body).Decode(&metric); err != nil {
+		if err := easyjson.UnmarshalFromReader(r.Body, &metric); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -398,10 +398,10 @@ func (s *APIServer) ping() http.HandlerFunc {
 	}
 }
 
-func (s *APIServer) writeJSONResp(resp any, w http.ResponseWriter) {
+func (s *APIServer) writeJSONResp(resp easyjson.Marshaler, w http.ResponseWriter) {
 	w.Header().Set(contType, "application/json")
 
-	jsonResp, err := json.Marshal(resp)
+	jsonResp, err := easyjson.Marshal(resp)
 	if err != nil {
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		return
