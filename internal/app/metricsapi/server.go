@@ -36,6 +36,7 @@ const (
 	timeout = 5 * time.Second
 )
 
+// APIServer хранит сущности для работы сервера.
 type APIServer struct {
 	config *Config
 	bll    Bll
@@ -53,6 +54,7 @@ func New(config *Config, bll Bll, logger *logrus.Logger) *APIServer {
 	}
 }
 
+// Start запускает сервер.
 func (s *APIServer) Start() error {
 	s.configRouter()
 

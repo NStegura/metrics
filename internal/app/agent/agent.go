@@ -73,6 +73,7 @@ func New(config *Config, metricsCli MetricCli, logger *logrus.Logger) *Agent {
 	}
 }
 
+// Start начинает сбор и отправку метрик.
 func (ag *Agent) Start() error {
 	var wg sync.WaitGroup
 

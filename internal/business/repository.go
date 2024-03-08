@@ -6,6 +6,7 @@ import (
 	"github.com/NStegura/metrics/internal/repo/models"
 )
 
+// Repository интерфейс к хранилищу.
 type Repository interface {
 	GetCounterMetric(ctx context.Context, name string) (models.CounterMetric, error)
 	CreateCounterMetric(ctx context.Context, name string, mType string, value int64) error

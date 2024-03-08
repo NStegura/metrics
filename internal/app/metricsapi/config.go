@@ -11,6 +11,7 @@ const (
 	defaultStoreInerval time.Duration = 300
 )
 
+// Config хранит параметры для старта приложения хранения метрик.
 type Config struct {
 	BindAddr        string
 	LogLevel        string
@@ -33,6 +34,7 @@ func NewConfig() *Config {
 	}
 }
 
+// ParseFlags определяет энвы и заполняет конфиг Config.
 func (c *Config) ParseFlags() (err error) {
 	var storeInterval int
 

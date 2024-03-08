@@ -4,6 +4,7 @@ go 1.21.3
 
 require (
 	github.com/go-chi/chi/v5 v5.0.10
+	github.com/go-resty/resty/v2 v2.11.0
 	github.com/golang/mock v1.6.0
 	github.com/jackc/pgx/v5 v5.5.1
 	github.com/mailru/easyjson v0.7.7
@@ -32,6 +33,7 @@ require (
 	github.com/yusufpapurcu/wmi v1.2.3 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.15.0 // indirect
+	golang.org/x/net v0.18.0 // indirect
 	golang.org/x/sync v0.5.0 // indirect
 	golang.org/x/sys v0.15.0 // indirect
 	golang.org/x/text v0.14.0 // indirect

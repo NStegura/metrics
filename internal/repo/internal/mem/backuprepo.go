@@ -18,6 +18,7 @@ const (
 	ownerRWPerm fs.FileMode = 0600
 )
 
+// BackupRepo структура хранилища с созданием бекапа.
 type BackupRepo struct {
 	InMemoryRepo
 
@@ -43,6 +44,7 @@ func NewBackupRepo(
 	}, nil
 }
 
+// CreateCounterMetric создает counter метрику.
 func (r *BackupRepo) CreateCounterMetric(ctx context.Context, name string, mType string, value int64) error {
 	err := r.InMemoryRepo.CreateCounterMetric(ctx, name, mType, value)
 	if err != nil {
@@ -57,6 +59,7 @@ func (r *BackupRepo) CreateCounterMetric(ctx context.Context, name string, mType
 	return nil
 }
 
+// UpdateCounterMetric обновляет counter метрику.
 func (r *BackupRepo) UpdateCounterMetric(ctx context.Context, name string, value int64) error {
 	err := r.InMemoryRepo.UpdateCounterMetric(ctx, name, value)
 	if err != nil {
@@ -71,6 +74,7 @@ func (r *BackupRepo) UpdateCounterMetric(ctx context.Context, name string, value
 	return nil
 }
 
+// CreateGaugeMetric создает gauge метрику.
 func (r *BackupRepo) CreateGaugeMetric(ctx context.Context, name string, mType string, value float64) error {
 	err := r.InMemoryRepo.CreateGaugeMetric(ctx, name, mType, value)
 	if err != nil {
@@ -85,6 +89,7 @@ func (r *BackupRepo) CreateGaugeMetric(ctx context.Context, name string, mType s
 	return nil
 }
 
+// UpdateGaugeMetric обновляет gauge метрику.
 func (r *BackupRepo) UpdateGaugeMetric(ctx context.Context, name string, value float64) error {
 	err := r.InMemoryRepo.UpdateGaugeMetric(ctx, name, value)
 	if err != nil {
@@ -99,6 +104,7 @@ func (r *BackupRepo) UpdateGaugeMetric(ctx context.Context, name string, value f
 	return nil
 }
 
+// LoadAndStartBackup загрузка бекапа и старт.
 func (r *BackupRepo) LoadAndStartBackup(_ context.Context) error {
 	r.logger.Info("Init backup")
 
@@ -117,6 +123,7 @@ func (r *BackupRepo) LoadAndStartBackup(_ context.Context) error {
 	return nil
 }
 
+// Shutdown выгружает в бекап и останавливает.
 func (r *BackupRepo) Shutdown(_ context.Context) {
 	r.logger.Info("Repo shutdown")
 	err := r.makeBackup()

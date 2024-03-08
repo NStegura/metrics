@@ -16,6 +16,7 @@ const (
 	defaultPollInterval   time.Duration = 2
 )
 
+// Config хранит параметры для старта приложения сбора метрик.
 type Config struct {
 	HTTPAddr       string
 	MetricCliKey   string
@@ -36,6 +37,7 @@ func NewConfig() *Config {
 	}
 }
 
+// ParseFlags определяет энвы и заполняет конфиг Config.
 func (c *Config) ParseFlags() (err error) {
 	var pollIntervalIn int
 	var reportIntervalIn int

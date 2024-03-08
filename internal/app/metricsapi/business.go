@@ -6,6 +6,7 @@ import (
 	blModels "github.com/NStegura/metrics/internal/business/models"
 )
 
+// Bll интерфейс для работы с бизнес слоем.
 type Bll interface {
 	GetGaugeMetric(context.Context, string) (float64, error)
 	UpdateGaugeMetric(context.Context, blModels.GaugeMetric) error

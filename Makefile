@@ -59,6 +59,10 @@ test:
 bench:
 	go test -bench . -benchmem ./...
 
+.PHONY: cover
+cover:
+	go test -v -coverpkg=./... -coverprofile=profile.cov ./...
+	go tool cover -func profile.cov
 
 ## LINTERS
 .PHONY: fmt
@@ -82,7 +86,7 @@ pprofmem:
 	go tool pprof -http=":9090" -seconds=30 http://localhost:8081/debug/pprof/heap
 
 .PHONY: pprofmemfile # save to file and check
-pprofmem:
+pprofmemfile:
 	curl -sK -v http://localhost:8081/debug/pprof/heap > heap.out
 	go tool pprof -http=":9090" -seconds=30 http://localhost:8081/debug/pprof/heap
 

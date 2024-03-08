@@ -1,3 +1,4 @@
+// Package repo выбирает реозиторий на основе переданных параметров.
 package repo
 
 import (
@@ -25,6 +26,7 @@ type Repository interface {
 	Ping(ctx context.Context) error
 }
 
+// New реализует репозиторий.
 func New(
 	ctx context.Context,
 	dbDSN string,

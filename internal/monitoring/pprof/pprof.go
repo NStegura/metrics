@@ -6,6 +6,7 @@ import (
 	"net/http/pprof"
 )
 
+// Start запускает профайлер на отдельном порту.
 func Start() error {
 	r := http.NewServeMux()
 

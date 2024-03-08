@@ -17,6 +17,7 @@ const (
 	countCounterMetrics int = 1
 )
 
+// bll бизнес слой.
 type bll struct {
 	repo   Repository
 	logger *logrus.Logger
@@ -26,6 +27,7 @@ func New(repo Repository, logger *logrus.Logger) *bll {
 	return &bll{repo: repo, logger: logger}
 }
 
+// GetGaugeMetric получает gauge метрику по имени.
 func (bll *bll) GetGaugeMetric(ctx context.Context, mName string) (float64, error) {
 	gm, err := bll.repo.GetGaugeMetric(ctx, mName)
 	if err != nil {
@@ -38,6 +40,7 @@ func (bll *bll) GetGaugeMetric(ctx context.Context, mName string) (float64, erro
 	return gm.Value, nil
 }
 
+// UpdateGaugeMetric обновляет gauge метрику.
 func (bll *bll) UpdateGaugeMetric(ctx context.Context, gmReq blModels.GaugeMetric) (err error) {
 	_, err = bll.repo.GetGaugeMetric(ctx, gmReq.Name)
 	if err != nil {
@@ -54,6 +57,7 @@ func (bll *bll) UpdateGaugeMetric(ctx context.Context, gmReq blModels.GaugeMetri
 	return
 }
 
+// GetCounterMetric получает counter метрику по имени.
 func (bll *bll) GetCounterMetric(ctx context.Context, mName string) (int64, error) {
 	cm, err := bll.repo.GetCounterMetric(ctx, mName)
 	if err != nil {
@@ -66,6 +70,7 @@ func (bll *bll) GetCounterMetric(ctx context.Context, mName string) (int64, erro
 	return cm.Value, nil
 }
 
+// UpdateCounterMetric обновляет counter метрику.
 func (bll *bll) UpdateCounterMetric(ctx context.Context, cmReq blModels.CounterMetric) (err error) {
 	cm, err := bll.repo.GetCounterMetric(ctx, cmReq.Name)
 	if err != nil {
@@ -84,6 +89,7 @@ func (bll *bll) UpdateCounterMetric(ctx context.Context, cmReq blModels.CounterM
 	return
 }
 
+// GetAllMetrics получает все метрики.
 func (bll *bll) GetAllMetrics(ctx context.Context) ([]blModels.GaugeMetric, []blModels.CounterMetric, error) {
 	gaugeMetrics := make([]blModels.GaugeMetric, 0, countGaugeMetrics)
 	counterMetrics := make([]blModels.CounterMetric, 0, countCounterMetrics)
@@ -114,6 +120,7 @@ func (bll *bll) GetAllMetrics(ctx context.Context) ([]blModels.GaugeMetric, []bl
 	return gaugeMetrics, counterMetrics, nil
 }
 
+// Ping проверяет работу сервера.
 func (bll *bll) Ping(ctx context.Context) error {
 	err := bll.repo.Ping(ctx)
 	if err != nil {
