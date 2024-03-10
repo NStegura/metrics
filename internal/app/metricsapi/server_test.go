@@ -32,10 +32,8 @@ func (th *testHelper) Request(t *testing.T, method, path string, body io.Reader,
 	t.Helper()
 	req, err := http.NewRequest(method, th.ts.URL+path, body)
 	require.NoError(t, err)
-	if headers != nil {
-		for header, value := range headers {
-			req.Header.Set(header, value)
-		}
+	for header, value := range headers {
+		req.Header.Set(header, value)
 	}
 	resp, err := th.ts.Client().Do(req)
 	require.NoError(t, err)
