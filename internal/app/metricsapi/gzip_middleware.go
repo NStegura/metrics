@@ -48,7 +48,6 @@ func newCompressReader(r io.ReadCloser) (*compressReader, error) {
 	}
 
 	return &compressReader{
-
 		zr: zr,
 	}, nil
 }

@@ -61,8 +61,10 @@ bench:
 
 .PHONY: cover
 cover:
-	go test -v -coverpkg=./... -coverprofile=profile.cov ./...
-	go tool cover -func profile.cov
+	go test -v -coverpkg=./... -coverprofile=cover.out.tmp ./...
+	cat cover.out.tmp | grep -v "_easyjson.go" > cover.out
+	rm cover.out.tmp
+	go tool cover -func cover.out
 
 ## LINTERS
 .PHONY: fmt
