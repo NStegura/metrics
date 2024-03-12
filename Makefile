@@ -62,7 +62,7 @@ bench:
 .PHONY: cover
 cover:
 	go test -v -coverpkg=./... -coverprofile=cover.out.tmp ./...
-	cat cover.out.tmp | grep -v "_easyjson.go" > cover.out
+	cat cover.out.tmp | grep -v "_easyjson.go" | grep -v "/mocks/"  > cover.out
 	rm cover.out.tmp
 	go tool cover -func cover.out
 
