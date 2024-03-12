@@ -22,15 +22,15 @@ func configureLogger(config *agent.Config) (*logrus.Logger, error) {
 	return logger, nil
 }
 
-func main() {
+func startAgent() error {
 	config := agent.NewConfig()
 	err := config.ParseFlags()
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("failed to parse config: %w", err)
 	}
 	logger, err := configureLogger(config)
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("failed to configure logger: %w", err)
 	}
 	metricsCli, err := metric.New(
 		config.HTTPAddr,
@@ -38,10 +38,17 @@ func main() {
 		logger,
 	)
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("failed to init metric client: %w", err)
 	}
 	ag := agent.New(config, metricsCli, logger)
 	if err = ag.Start(); err != nil {
-		logger.Fatal(err)
+		return fmt.Errorf("failed to start agent: %w", err)
+	}
+	return nil
+}
+
+func main() {
+	if err := startAgent(); err != nil {
+		log.Fatal(err)
 	}
 }
