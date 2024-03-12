@@ -39,9 +39,34 @@ rollbackmigrations:
 	goose -dir=internal/repo/internal/db/migrations postgres "host=localhost port=54323 user=usr password=psswrd dbname=metrics sslmode=disable" reset
 
 
-## LINTERS
-GOLANGCI_LINT_CACHE?=/tmp/praktikum-golangci-lint-cache
+## TESTS
 
+MOCKS_DESTINATION=mocks
+.PHONY: mocks
+# put the files with interfaces you'd like to mock in prerequisites
+# wildcards are allowed
+mocks: ./internal/app/agent/imetric.go
+	@echo "Generating mocks..."
+	@rm -rf $(MOCKS_DESTINATION)
+	@for file in $^; do mockgen -source=$$file -destination=$(MOCKS_DESTINATION)/$$file; done
+
+.PHONY: test
+test:
+	go install gotest.tools/gotestsum@latest
+	gotestsum --format pkgname -- -coverprofile=cover.out ./...
+
+.PHONY: bench
+bench:
+	go test -bench . -benchmem ./...
+
+.PHONY: cover
+cover:
+	go test -v -coverpkg=./... -coverprofile=cover.out.tmp ./...
+	cat cover.out.tmp | grep -v "_easyjson.go" | grep -v "/mocks/"  > cover.out
+	rm cover.out.tmp
+	go tool cover -func cover.out
+
+## LINTERS
 .PHONY: fmt
 fmt:
 	go fmt ./...
@@ -50,34 +75,31 @@ fmt:
 
 .PHONY: lint
 lint:
-	golangci-lint run
+	golangci-lint run -c .golangci.yml --out-format=colored-line-number --sort-results
 
-.PHONY: lint-report
-lint-report: _golangci-lint-rm-unformatted-report
+## PROFILE
 
-.PHONY: _golangci-lint-reports-mkdir
-_golangci-lint-reports-mkdir:
-	mkdir -p ./golangci-lint
+.PHONY: pprofcpu
+pprofcpu:
+	go tool pprof -http=":9090" -seconds=30 http://localhost:8081/debug/pprof/profile
 
-.PHONY: _golangci-lint-run
-_golangci-lint-run: _golangci-lint-reports-mkdir
-	-docker run --rm \
-    -v $(shell pwd):/app \
-    -v $(GOLANGCI_LINT_CACHE):/root/.cache \
-    -w /app \
-    golangci/golangci-lint:v1.55.2 \
-        golangci-lint run \
-            -c .golangci.yml \
-	> ./golangci-lint/report-unformatted.json
+.PHONY: pprofmem
+pprofmem:
+	go tool pprof -http=":9090" -seconds=30 http://localhost:8081/debug/pprof/heap
 
-.PHONY: _golangci-lint-format-report
-_golangci-lint-format-report: _golangci-lint-run
-	cat ./golangci-lint/report-unformatted.json | jq > ./golangci-lint/report.json
+.PHONY: pprofmemfile # save to file and check
+pprofmemfile:
+	curl -sK -v http://localhost:8081/debug/pprof/heap > heap.out
+	go tool pprof -http=":9090" -seconds=30 http://localhost:8081/debug/pprof/heap
 
-.PHONY: _golangci-lint-rm-unformatted-report
-_golangci-lint-rm-unformatted-report: _golangci-lint-format-report
-	rm ./golangci-lint/report-unformatted.json
+.PHONY: pprofconsolecpu # save to file and check
+pprofconsolecpu:
+	go tool pprof -seconds=30 http://localhost:8081/debug/pprof/profile
 
-.PHONY: lint-clean
-golangci-lint-clean:
-	sudo rm -rf ./golangci-lint
+.PHONY: pprofsavemem # example save to file
+pprofsavemem:
+	curl http://localhost:8081/debug/pprof/heap > ./profiles/result.pprof
+
+.PHONY: pprofcompare # example compare
+pprofcompare:
+	go tool pprof -top -diff_base=profiles/base.pprof profiles/result.pprof

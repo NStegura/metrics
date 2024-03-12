@@ -60,12 +60,12 @@ const (
 
 type Agent struct {
 	config     *Config
-	metricsCli *metric.Client
+	metricsCli MetricCli
 
 	logger *logrus.Logger
 }
 
-func New(config *Config, metricsCli *metric.Client, logger *logrus.Logger) *Agent {
+func New(config *Config, metricsCli MetricCli, logger *logrus.Logger) *Agent {
 	return &Agent{
 		config:     config,
 		metricsCli: metricsCli,
@@ -73,6 +73,7 @@ func New(config *Config, metricsCli *metric.Client, logger *logrus.Logger) *Agen
 	}
 }
 
+// Start начинает сбор и отправку метрик.
 func (ag *Agent) Start() error {
 	var wg sync.WaitGroup
 

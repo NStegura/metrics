@@ -15,6 +15,7 @@ type CounterMetric struct {
 	Value int64      `json:"delta"`
 }
 
+// Metrics - отправляемые метрики.
 type Metrics struct {
 	GaugeMetrics   map[MetricName]*GaugeMetric
 	CounterMetrics map[MetricName]*CounterMetric

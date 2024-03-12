@@ -17,6 +17,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// Client - клиент к хранению метрик.
 type Client struct {
 	client       *http.Client
 	logger       *logrus.Logger
@@ -67,8 +68,9 @@ func NewRequestError(response *http.Response) error {
 	return &RequestError{response.Request.URL, body, response.StatusCode}
 }
 
+// UpdateGaugeMetric обновляет gauge метрику.
 func (c *Client) UpdateGaugeMetric(name string, value float64) error {
-	resp, err := c.Post(
+	resp, err := c.post(
 		fmt.Sprintf("%s/update/gauge/%s/%v", c.URL, name, value),
 		"text/plain",
 		nil,
@@ -89,8 +91,9 @@ func (c *Client) UpdateGaugeMetric(name string, value float64) error {
 	return nil
 }
 
+// UpdateCounterMetric обновляет counter метрику.
 func (c *Client) UpdateCounterMetric(name string, value int64) error {
-	resp, err := c.Post(
+	resp, err := c.post(
 		fmt.Sprintf("%s/update/counter/%s/%v", c.URL, name, value),
 		"text/plain",
 		nil,
@@ -111,8 +114,9 @@ func (c *Client) UpdateCounterMetric(name string, value int64) error {
 	return nil
 }
 
+// UpdateMetric обновляет метрику.
 func (c *Client) UpdateMetric(jsonBody []byte) error {
-	resp, err := c.Post(
+	resp, err := c.post(
 		fmt.Sprintf("%s/update/", c.URL),
 		"application/json",
 		jsonBody,
@@ -133,6 +137,7 @@ func (c *Client) UpdateMetric(jsonBody []byte) error {
 	return nil
 }
 
+// UpdateMetrics обновляет набор метрик.
 func (c *Client) UpdateMetrics(metrics []Metrics) error {
 	if len(metrics) == 0 {
 		c.logger.Info("Empty metric result")
@@ -144,7 +149,7 @@ func (c *Client) UpdateMetrics(metrics []Metrics) error {
 		return fmt.Errorf("failed to decode metrics, err %w", err)
 	}
 
-	resp, err := c.Post(
+	resp, err := c.post(
 		fmt.Sprintf("%s/updates/", c.URL),
 		"application/json",
 		jsonBody,
@@ -165,7 +170,7 @@ func (c *Client) UpdateMetrics(metrics []Metrics) error {
 	return nil
 }
 
-func (c *Client) Post(
+func (c *Client) post(
 	url string,
 	contentType string,
 	body []byte,
@@ -202,16 +207,16 @@ func (c *Client) Post(
 		req.Header.Set(h, v)
 	}
 
-	resp, err = c.DoWithRetry(req)
+	resp, err = c.doWithRetry(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
 	return resp, nil
 }
 
-func (c *Client) DoWithRetry(req *http.Request) (resp *http.Response, err error) {
+func (c *Client) doWithRetry(req *http.Request) (resp *http.Response, err error) {
 	for _, backoff := range c.scheduleBackoffAttempts() {
-		resp, err = c.DoWithLog(req)
+		resp, err = c.doWithLog(req)
 		if err != nil {
 			c.logger.Warningf("Request failed %v, err: %+v", req, err)
 			return
@@ -226,7 +231,7 @@ func (c *Client) DoWithRetry(req *http.Request) (resp *http.Response, err error)
 	return
 }
 
-func (c *Client) DoWithLog(req *http.Request) (resp *http.Response, err error) {
+func (c *Client) doWithLog(req *http.Request) (resp *http.Response, err error) {
 	start := time.Now()
 	resp, err = c.client.Do(req)
 	duration := time.Since(start)

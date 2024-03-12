@@ -30,6 +30,9 @@ type Metrics struct {
 	MType string   `json:"type"`
 }
 
+//easyjson:json
+type MetricsList []Metrics
+
 func CastToGauge(m Metric) (GaugeMetric, error) {
 	value, err := strconv.ParseFloat(m.Value, 64)
 	if err != nil {

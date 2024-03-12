@@ -11,6 +11,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/NStegura/metrics/internal/monitoring/pprof"
+
 	"github.com/sirupsen/logrus"
 
 	"github.com/NStegura/metrics/internal/app/metricsapi"
@@ -87,6 +89,15 @@ func runRest() error {
 				return
 			}
 			errs <- fmt.Errorf("listen and server has failed: %w", err)
+		}
+	}(componentsErrs)
+
+	go func(errs chan<- error) {
+		if err = pprof.Start(); err != nil {
+			if errors.Is(err, http.ErrServerClosed) {
+				return
+			}
+			errs <- fmt.Errorf("listen and serve pprof has failed: %w", err)
 		}
 	}(componentsErrs)
 

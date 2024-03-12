@@ -19,6 +19,7 @@ type Metrics struct {
 	CounterMetrics map[string]*models.CounterMetric `json:"counter_metrics"`
 }
 
+// InMemoryRepo структура хранилища в памяти.
 type InMemoryRepo struct {
 	m *Metrics
 
@@ -33,6 +34,7 @@ func NewInMemoryRepo(logger *logrus.Logger) (*InMemoryRepo, error) {
 		}, logger}, nil
 }
 
+// GetCounterMetric получает counter метрику по названию.
 func (r *InMemoryRepo) GetCounterMetric(_ context.Context, name string) (cm models.CounterMetric, err error) {
 	metric, ok := r.m.CounterMetrics[name]
 	if !ok {
@@ -42,11 +44,13 @@ func (r *InMemoryRepo) GetCounterMetric(_ context.Context, name string) (cm mode
 	return *metric, nil
 }
 
+// CreateCounterMetric создает counter метрику.
 func (r *InMemoryRepo) CreateCounterMetric(_ context.Context, name string, mType string, value int64) error {
 	r.m.CounterMetrics[name] = &models.CounterMetric{Name: name, Type: mType, Value: value}
 	return nil
 }
 
+// UpdateCounterMetric обновляет counter метрику.
 func (r *InMemoryRepo) UpdateCounterMetric(_ context.Context, name string, value int64) error {
 	metric, ok := r.m.CounterMetrics[name]
 	if !ok {
@@ -56,6 +60,7 @@ func (r *InMemoryRepo) UpdateCounterMetric(_ context.Context, name string, value
 	return nil
 }
 
+// GetGaugeMetric получает gauge метрику.
 func (r *InMemoryRepo) GetGaugeMetric(_ context.Context, name string) (cm models.GaugeMetric, err error) {
 	metric, ok := r.m.GaugeMetrics[name]
 	if !ok {
@@ -65,11 +70,13 @@ func (r *InMemoryRepo) GetGaugeMetric(_ context.Context, name string) (cm models
 	return *metric, nil
 }
 
+// CreateGaugeMetric создает gauge метрику.
 func (r *InMemoryRepo) CreateGaugeMetric(_ context.Context, name string, mType string, value float64) error {
 	r.m.GaugeMetrics[name] = &models.GaugeMetric{Name: name, Type: mType, Value: value}
 	return nil
 }
 
+// UpdateGaugeMetric обновляет gauge метрику.
 func (r *InMemoryRepo) UpdateGaugeMetric(_ context.Context, name string, value float64) error {
 	metric, ok := r.m.GaugeMetrics[name]
 	if !ok {
@@ -79,6 +86,7 @@ func (r *InMemoryRepo) UpdateGaugeMetric(_ context.Context, name string, value f
 	return nil
 }
 
+// GetAllMetrics получает все метрики.
 func (r *InMemoryRepo) GetAllMetrics(_ context.Context) ([]models.GaugeMetric, []models.CounterMetric, error) {
 	gaugeMetrics := make([]models.GaugeMetric, 0, countGaugeMetrics)
 	counterMetrics := make([]models.CounterMetric, 0, countCounterMetrics)

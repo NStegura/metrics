@@ -37,6 +37,7 @@ func New(ctx context.Context, dsn string, logger *logrus.Logger) (*DB, error) {
 //go:embed migrations/*.sql
 var embedMigrations embed.FS
 
+// RunMigrations запускает миграции.
 func (db *DB) RunMigrations() error {
 	goose.SetBaseFS(embedMigrations)
 
@@ -51,11 +52,13 @@ func (db *DB) RunMigrations() error {
 	return nil
 }
 
+// Shutdown закрывает соединения к базе данных.
 func (db *DB) Shutdown(_ context.Context) {
 	db.logger.Debug("db shutdown")
 	db.pool.Close()
 }
 
+// Ping проверяет подключение к базе данных.
 func (db *DB) Ping(ctx context.Context) error {
 	db.logger.Debug("Ping db")
 	err := db.pool.Ping(ctx)
@@ -65,6 +68,7 @@ func (db *DB) Ping(ctx context.Context) error {
 	return nil
 }
 
+// GetCounterMetric получает counter метрику по названию.
 func (db *DB) GetCounterMetric(ctx context.Context, name string) (cm models.CounterMetric, err error) {
 	db.logger.Debugf("GetCounterMetric name %s", name)
 	const query = `
@@ -90,6 +94,7 @@ func (db *DB) GetCounterMetric(ctx context.Context, name string) (cm models.Coun
 	return cm, nil
 }
 
+// CreateCounterMetric создает counter метрику.
 func (db *DB) CreateCounterMetric(ctx context.Context, name string, mType string, value int64) error {
 	db.logger.Debugf("CreateCounterMetric name %s, mtype %s, value %v", name, mType, value)
 
@@ -124,6 +129,7 @@ func (db *DB) CreateCounterMetric(ctx context.Context, name string, mType string
 	return nil
 }
 
+// UpdateCounterMetric обновляет counter метрику.
 func (db *DB) UpdateCounterMetric(ctx context.Context, name string, value int64) error {
 	db.logger.Debugf("UpdateCounterMetric name %s, value %v", name, value)
 
@@ -159,6 +165,7 @@ func (db *DB) UpdateCounterMetric(ctx context.Context, name string, value int64)
 	return nil
 }
 
+// GetGaugeMetric получает gauge метрику.
 func (db *DB) GetGaugeMetric(ctx context.Context, name string) (gm models.GaugeMetric, err error) {
 	db.logger.Debugf("GetGaugeMetric name %s", name)
 	const query = `
@@ -185,6 +192,7 @@ func (db *DB) GetGaugeMetric(ctx context.Context, name string) (gm models.GaugeM
 	return gm, err
 }
 
+// CreateGaugeMetric создает gauge метрику.
 func (db *DB) CreateGaugeMetric(ctx context.Context, name string, mType string, value float64) error {
 	db.logger.Debugf("CreateGaugeMetric name %s, mtype %s, value %v", name, mType, value)
 
@@ -219,6 +227,7 @@ func (db *DB) CreateGaugeMetric(ctx context.Context, name string, mType string, 
 	return nil
 }
 
+// UpdateGaugeMetric обновляет gauge метрику.
 func (db *DB) UpdateGaugeMetric(ctx context.Context, name string, value float64) error {
 	db.logger.Debugf("UpdateGaugeMetric name %s, value %v", name, value)
 
@@ -253,6 +262,7 @@ func (db *DB) UpdateGaugeMetric(ctx context.Context, name string, value float64)
 	return nil
 }
 
+// GetAllMetrics получает все метрики.
 func (db *DB) GetAllMetrics(ctx context.Context) (gms []models.GaugeMetric, cms []models.CounterMetric, err error) {
 	db.logger.Debug("GetAllMetrics")
 
