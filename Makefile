@@ -26,6 +26,10 @@ buildapi: ## Build api app
 buildagent: ## Build agent app
 	go build -o ./cmd/agent/agent cmd/agent/main.go
 
+.PHONY: buildcustomlinter
+buildcustomlinter: ## Build linter
+	go build -o ./cmd/staticlint/staticlint cmd/staticlint/main.go
+
 .PHONY: rundb
 rundb:
 	docker run --name metrics -e POSTGRES_USER=usr -e POSTGRES_PASSWORD=psswrd -e POSTGRES_DB=metrics -p 54323:5432 -d postgres:14.2
