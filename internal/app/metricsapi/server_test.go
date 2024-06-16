@@ -38,7 +38,7 @@ func (th *testHelper) Request(t *testing.T, method, path string, body io.Reader,
 	resp, err := th.ts.Client().Do(req)
 	require.NoError(t, err)
 	defer func() {
-		if err := resp.Body.Close(); err != nil {
+		if err = resp.Body.Close(); err != nil {
 			t.Log(err)
 		}
 	}()

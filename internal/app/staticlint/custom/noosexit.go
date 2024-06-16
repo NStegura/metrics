@@ -2,6 +2,7 @@ package custom
 
 import (
 	"go/ast"
+
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/passes/inspect"
 )
@@ -15,7 +16,7 @@ var NoOsExitAnalyzer = &analysis.Analyzer{
 	},
 }
 
-func run(pass *analysis.Pass) (interface{}, error) {
+func run(pass *analysis.Pass) (a interface{}, err error) {
 	funcChecker := func(x *ast.FuncDecl) {
 		// ищем и проверяем функцию
 		for _, stmt := range x.Body.List {
@@ -32,8 +33,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 
 	for _, file := range pass.Files {
 		ast.Inspect(file, func(node ast.Node) bool {
-			switch x := node.(type) {
-			case *ast.File:
+			if x, ok := node.(*ast.File); ok {
 				// проверяем пакет
 				if x.Name.Name != "main" {
 					return false
@@ -48,5 +48,5 @@ func run(pass *analysis.Pass) (interface{}, error) {
 			return true
 		})
 	}
-	return nil, nil
+	return
 }
