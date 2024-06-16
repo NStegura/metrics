@@ -156,6 +156,7 @@ func (ag *Agent) sendMetrics(workerID int, wg *sync.WaitGroup, metricsCh <-chan 
 }
 
 func (ag *Agent) getMetricsFromStats(counter int64) models.Metrics {
+	ag.logger.Infof("getMetricsFromStats")
 	stats := runtime.MemStats{}
 	runtime.ReadMemStats(&stats)
 

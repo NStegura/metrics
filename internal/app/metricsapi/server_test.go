@@ -58,9 +58,9 @@ func initTestHelper(t *testing.T) *testHelper {
 	require.NoError(t, err)
 	businessLayer := business.New(r, l)
 	server := New(NewConfig(), businessLayer, l)
-	server.configRouter()
+	server.ConfigRouter()
 
-	ts := httptest.NewServer(server.router)
+	ts := httptest.NewServer(server.Router)
 	return &testHelper{
 		ctrl: ctrl,
 		ts:   ts,
@@ -500,5 +500,33 @@ func TestUpdateAllMetricsHandler(t *testing.T) {
 		statusCode, _ := th.Request(t, "POST", v.url, bytes.NewBufferString(v.body), nil)
 		assert.Equal(t, v.want.statusCode, statusCode)
 
+	}
+}
+
+func TestPingHandler__ok(t *testing.T) {
+	th := initTestHelper(t)
+	defer th.finish()
+	type want struct {
+		statusCode int
+	}
+
+	tests := []struct {
+		method string
+		name   string
+		url    string
+		want   want
+	}{
+		{
+			method: http.MethodGet,
+			name:   "ping",
+			url:    "/ping",
+			want: want{
+				statusCode: http.StatusOK,
+			},
+		},
+	}
+	for _, v := range tests {
+		statusCode, _ := th.Request(t, v.method, v.url, nil, nil)
+		assert.Equal(t, v.want.statusCode, statusCode)
 	}
 }
