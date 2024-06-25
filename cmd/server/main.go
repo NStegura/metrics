@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"sync"
 	"time"
 
@@ -22,6 +23,12 @@ import (
 
 const (
 	timeoutShutdown = time.Second * 10
+)
+
+var (
+	buildVersion string
+	buildDate    string
+	buildCommit  string
 )
 
 func configureLogger(config *metricsapi.Config) (*logrus.Logger, error) {
@@ -119,7 +126,34 @@ func runRest() error {
 	return nil
 }
 
+func printProjectInfo() {
+	var s strings.Builder
+	na := "N/A"
+	s.WriteString("Build version: ")
+	if buildVersion != "" {
+		s.WriteString(fmt.Sprintf("<%s>\n", buildVersion))
+	} else {
+		s.WriteString(na)
+	}
+
+	s.WriteString("Build date: ")
+	if buildDate != "" {
+		s.WriteString(fmt.Sprintf("<%s>\n", buildDate))
+	} else {
+		s.WriteString(na)
+	}
+
+	s.WriteString("Build commit: ")
+	if buildCommit != "" {
+		s.WriteString(fmt.Sprintf("<%s>\n", buildCommit))
+	} else {
+		s.WriteString(na)
+	}
+	log.Println(s.String())
+}
+
 func main() {
+	printProjectInfo()
 	if err := runRest(); err != nil {
 		log.Fatal(err)
 	}

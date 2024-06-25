@@ -22,6 +22,10 @@ buildall: buildapi buildagent
 buildapi: ## Build api app
 	go build -o ./cmd/server/server cmd/server/main.go
 
+.PHONY: runapi
+runapi: ## Run api app
+	go run -ldflags  "-X main.buildVersion=v1.0.0 -X 'main.buildDate=$(date +'%Y/%m/%d %H:%M:%S')' -X main.buildCommit=v1" cmd/server/main.go
+
 .PHONY: buildagent
 buildagent: ## Build agent app
 	go build -o ./cmd/agent/agent cmd/agent/main.go
