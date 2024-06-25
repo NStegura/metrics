@@ -56,25 +56,26 @@ func startAgent() error {
 
 func printProjectInfo() {
 	var s strings.Builder
+	na := "N/A"
 	s.WriteString("Build version: ")
 	if buildVersion != "" {
 		s.WriteString(fmt.Sprintf("<%s>\n", buildVersion))
 	} else {
-		s.WriteString(fmt.Sprintf("<%s>\n", buildVersion))
+		s.WriteString(na)
 	}
 
 	s.WriteString("Build date: ")
 	if buildDate != "" {
 		s.WriteString(fmt.Sprintf("<%s>\n", buildDate))
 	} else {
-		s.WriteString(fmt.Sprintf("<%s>\n", buildDate))
+		s.WriteString(na)
 	}
 
 	s.WriteString("Build commit: ")
 	if buildCommit != "" {
 		s.WriteString(fmt.Sprintf("<%s>\n", buildCommit))
 	} else {
-		s.WriteString(fmt.Sprintf("<%s>\n", buildCommit))
+		s.WriteString(na)
 	}
 	log.Println(s.String())
 }
