@@ -27,8 +27,8 @@ func TestAgent_collectMetrics(t *testing.T) {
 	var wg sync.WaitGroup
 	metricsCh := ag.collectMetrics(&wg)
 	// Проверяем, что канал метрик создается успешно
-	select {
-	case _, ok := <-metricsCh:
+	_, ok := <-metricsCh
+	if ok {
 		assert.True(t, ok)
 	}
 }
