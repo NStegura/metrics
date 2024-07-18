@@ -31,3 +31,7 @@ jobs:
       - name: Run statictest
         run: |
           go vet -vettool=$(which statictest) ./...
+
+      - name: Run multichecker
+        run: |
+          ./cmd/staticlint/staticlint ./...

@@ -3,12 +3,19 @@ package main
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/NStegura/metrics/internal/clients/metric"
 
 	"github.com/sirupsen/logrus"
 
 	"github.com/NStegura/metrics/internal/app/agent"
+)
+
+var (
+	buildVersion string
+	buildDate    string
+	buildCommit  string
 )
 
 func configureLogger(config *agent.Config) (*logrus.Logger, error) {
@@ -47,7 +54,34 @@ func startAgent() error {
 	return nil
 }
 
+func printProjectInfo() {
+	var s strings.Builder
+	na := "N/A"
+	s.WriteString("Build version: ")
+	if buildVersion != "" {
+		s.WriteString(fmt.Sprintf("<%s>\n", buildVersion))
+	} else {
+		s.WriteString(na)
+	}
+
+	s.WriteString("Build date: ")
+	if buildDate != "" {
+		s.WriteString(fmt.Sprintf("<%s>\n", buildDate))
+	} else {
+		s.WriteString(na)
+	}
+
+	s.WriteString("Build commit: ")
+	if buildCommit != "" {
+		s.WriteString(fmt.Sprintf("<%s>\n", buildCommit))
+	} else {
+		s.WriteString(na)
+	}
+	log.Println(s.String())
+}
+
 func main() {
+	printProjectInfo()
 	if err := startAgent(); err != nil {
 		log.Fatal(err)
 	}

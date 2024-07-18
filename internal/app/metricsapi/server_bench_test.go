@@ -24,9 +24,9 @@ func initBenchHelper() *benchHelper {
 	r, _ := repo.New(ctx, "", 100, "", false, l)
 	businessLayer := business.New(r, l)
 	server := New(NewConfig(), businessLayer, l)
-	server.configRouter()
+	server.ConfigRouter()
 
-	ts := httptest.NewServer(server.router)
+	ts := httptest.NewServer(server.Router)
 	return &benchHelper{
 		ts: ts,
 	}

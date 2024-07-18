@@ -40,7 +40,7 @@ const (
 type APIServer struct {
 	config *Config
 	bll    Bll
-	router *chi.Mux
+	Router *chi.Mux
 
 	logger *logrus.Logger
 }
@@ -49,31 +49,31 @@ func New(config *Config, bll Bll, logger *logrus.Logger) *APIServer {
 	return &APIServer{
 		config: config,
 		bll:    bll,
-		router: chi.NewRouter(),
+		Router: chi.NewRouter(),
 		logger: logger,
 	}
 }
 
 // Start запускает сервер.
 func (s *APIServer) Start() error {
-	s.configRouter()
+	s.ConfigRouter()
 
 	s.logger.Infof("starting APIServer %s", s.config.BindAddr)
-	if err := http.ListenAndServe(s.config.BindAddr, s.router); err != nil {
+	if err := http.ListenAndServe(s.config.BindAddr, s.Router); err != nil {
 		return fmt.Errorf("failed to start server: %w", err)
 	}
 	return nil
 }
 
-func (s *APIServer) configRouter() {
-	s.router.Use(s.requestLogger)
-	s.router.Use(s.gzipMiddleware)
-	s.router.Use(s.hashValidation)
+func (s *APIServer) ConfigRouter() {
+	s.Router.Use(s.requestLogger)
+	s.Router.Use(s.gzipMiddleware)
+	s.Router.Use(s.hashValidation)
 
-	s.router.Get(`/`, s.getAllMetrics())
-	s.router.Post(`/updates/`, s.updateAllMetrics())
+	s.Router.Get(`/`, s.getAllMetrics())
+	s.Router.Post(`/updates/`, s.updateAllMetrics())
 
-	s.router.Route(`/value`, func(r chi.Router) {
+	s.Router.Route(`/value`, func(r chi.Router) {
 		r.Post(`/`, s.getMetric())
 		r.Route(`/gauge`, func(r chi.Router) {
 			r.Get(`/{mName}`, s.getGaugeMetric())
@@ -83,7 +83,7 @@ func (s *APIServer) configRouter() {
 		})
 	})
 
-	s.router.Route(`/update`, func(r chi.Router) {
+	s.Router.Route(`/update`, func(r chi.Router) {
 		r.Post(`/`, s.updateMetric())
 		r.Post(`/{mType}/{mName}/{mValue}`, func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusBadRequest)
@@ -96,7 +96,7 @@ func (s *APIServer) configRouter() {
 		})
 	})
 
-	s.router.Get(`/ping`, s.ping())
+	s.Router.Get(`/ping`, s.ping())
 }
 
 func (s *APIServer) getAllMetrics() http.HandlerFunc {

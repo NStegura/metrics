@@ -8,6 +8,7 @@ import (
 )
 
 func TestAgent(t *testing.T) {
+	t.Helper()
 	errs := make(chan error, 1)
 
 	go func(errs chan<- error) {
