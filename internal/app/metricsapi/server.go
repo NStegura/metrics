@@ -85,7 +85,7 @@ func (s *APIServer) ConfigRouter() {
 
 	s.Router.Route(`/update`, func(r chi.Router) {
 		r.Post(`/`, s.updateMetric())
-		r.Post(`/{mType}/{mName}/{mValue}`, func(w http.ResponseWriter, r *http.Request) {
+		r.Post(`/{mType}/{mName}/{mValue}`, func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusBadRequest)
 		})
 		r.Route(`/gauge`, func(r chi.Router) {
