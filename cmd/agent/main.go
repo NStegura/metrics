@@ -42,6 +42,7 @@ func startAgent() error {
 	metricsCli, err := metric.New(
 		config.HTTPAddr,
 		config.MetricCliKey,
+		config.PublicCryptoKey,
 		logger,
 	)
 	if err != nil {

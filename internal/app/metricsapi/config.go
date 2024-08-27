@@ -13,24 +13,26 @@ const (
 
 // Config хранит параметры для старта приложения хранения метрик.
 type Config struct {
-	BindAddr        string
-	LogLevel        string
-	FileStoragePath string
-	DatabaseDSN     string
-	RequestKey      string
-	StoreInterval   time.Duration
-	Restore         bool
+	BindAddr         string
+	LogLevel         string
+	FileStoragePath  string
+	DatabaseDSN      string
+	RequestKey       string
+	PrivateCryptoKey string
+	StoreInterval    time.Duration
+	Restore          bool
 }
 
 func NewConfig() *Config {
 	return &Config{
-		BindAddr:        ":8080",
-		LogLevel:        "debug",
-		FileStoragePath: "/tmp/metrics-db.json",
-		DatabaseDSN:     "",
-		RequestKey:      "",
-		StoreInterval:   defaultStoreInerval,
-		Restore:         false,
+		BindAddr:         ":8080",
+		LogLevel:         "debug",
+		FileStoragePath:  "/tmp/metrics-db.json",
+		DatabaseDSN:      "",
+		RequestKey:       "",
+		PrivateCryptoKey: "",
+		StoreInterval:    defaultStoreInerval,
+		Restore:          false,
 	}
 }
 
@@ -49,6 +51,7 @@ func (c *Config) ParseFlags() (err error) {
 	flag.StringVar(&c.DatabaseDSN, "d", "", "database dsn")
 	flag.BoolVar(&c.Restore, "r", true, "load metrics")
 	flag.StringVar(&c.RequestKey, "k", "", "add key to sign requests")
+	flag.StringVar(&c.PrivateCryptoKey, "crypto-key", "", "add crypto key to read requests")
 	flag.Parse()
 
 	if envRunAddr, ok := os.LookupEnv("ADDRESS"); ok {
@@ -75,6 +78,10 @@ func (c *Config) ParseFlags() (err error) {
 	}
 	if key, ok := os.LookupEnv("KEY"); ok {
 		c.RequestKey = key
+	}
+
+	if cryptoKey, ok := os.LookupEnv("CRYPTO_KEY"); ok {
+		c.PrivateCryptoKey = cryptoKey
 	}
 
 	if restoreIn, ok := os.LookupEnv("RESTORE"); ok {

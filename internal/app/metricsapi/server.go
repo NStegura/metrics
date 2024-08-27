@@ -67,6 +67,7 @@ func (s *APIServer) Start() error {
 
 func (s *APIServer) ConfigRouter() {
 	s.Router.Use(s.requestLogger)
+	s.Router.Use(s.decryptMiddleware)
 	s.Router.Use(s.gzipMiddleware)
 	s.Router.Use(s.hashValidation)
 

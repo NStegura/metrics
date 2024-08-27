@@ -10,6 +10,7 @@ import (
 const (
 	defaultHTTPAddr       string        = ":8080"
 	defaultMetricCliKey   string        = ""
+	defaulPublicCryptoKey string        = ""
 	defaultLogLevel       string        = "debug"
 	defaultRateLimit      int           = 3
 	defaultReportInterval time.Duration = 10
@@ -18,22 +19,24 @@ const (
 
 // Config хранит параметры для старта приложения сбора метрик.
 type Config struct {
-	HTTPAddr       string
-	MetricCliKey   string
-	LogLevel       string
-	RateLimit      int
-	ReportInterval time.Duration
-	PollInterval   time.Duration
+	HTTPAddr        string
+	MetricCliKey    string
+	PublicCryptoKey string
+	LogLevel        string
+	RateLimit       int
+	ReportInterval  time.Duration
+	PollInterval    time.Duration
 }
 
 func NewConfig() *Config {
 	return &Config{
-		HTTPAddr:       defaultHTTPAddr,
-		MetricCliKey:   defaultMetricCliKey,
-		RateLimit:      defaultRateLimit,
-		ReportInterval: defaultReportInterval,
-		PollInterval:   defaultPollInterval,
-		LogLevel:       defaultLogLevel,
+		HTTPAddr:        defaultHTTPAddr,
+		MetricCliKey:    defaultMetricCliKey,
+		PublicCryptoKey: defaulPublicCryptoKey,
+		RateLimit:       defaultRateLimit,
+		ReportInterval:  defaultReportInterval,
+		PollInterval:    defaultPollInterval,
+		LogLevel:        defaultLogLevel,
 	}
 }
 
@@ -57,6 +60,7 @@ func (c *Config) ParseFlags() (err error) {
 		"frequency of polling metrics from the package",
 	)
 	flag.StringVar(&c.MetricCliKey, "k", "", "add key to sign requests")
+	flag.StringVar(&c.PublicCryptoKey, "crypto-key", "", "add key to send requests")
 	flag.IntVar(&c.RateLimit, "l", defaultRateLimit, "rate limit")
 	flag.Parse()
 
@@ -83,6 +87,9 @@ func (c *Config) ParseFlags() (err error) {
 		if err != nil {
 			return
 		}
+	}
+	if cryptoKey, ok := os.LookupEnv("CRYPTO_KEY"); ok {
+		c.PublicCryptoKey = cryptoKey
 	}
 
 	c.ReportInterval = time.Second * time.Duration(reportIntervalIn)

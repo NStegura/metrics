@@ -38,6 +38,7 @@ func initTestHelper(t *testing.T) *testHelper {
 	metricsCli, err := New(
 		ts.URL,
 		"",
+		"",
 		l,
 	)
 	require.NoError(t, err)

@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"compress/gzip"
 	"crypto/hmac"
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -14,21 +16,25 @@ import (
 	"strings"
 	"time"
 
+	"github.com/NStegura/metrics/utils/pem"
+
 	"github.com/sirupsen/logrus"
 )
 
 // Client - клиент к хранению метрик.
 type Client struct {
-	client       *http.Client
-	logger       *logrus.Logger
-	URL          string
-	key          string
-	compressType string
+	client        *http.Client
+	logger        *logrus.Logger
+	URL           string
+	key           string
+	cryptoKeyPath string
+	compressType  string
 }
 
 func New(
 	addr string,
 	key string,
+	cryptoKeyPath string,
 	logger *logrus.Logger,
 ) (*Client, error) {
 	var err error
@@ -39,11 +45,12 @@ func New(
 		}
 	}
 	return &Client{
-		client:       &http.Client{},
-		URL:          addr,
-		key:          key,
-		logger:       logger,
-		compressType: "gzip",
+		client:        &http.Client{},
+		URL:           addr,
+		key:           key,
+		cryptoKeyPath: cryptoKeyPath,
+		logger:        logger,
+		compressType:  "gzip",
 	}, nil
 }
 
@@ -195,6 +202,18 @@ func (c *Client) post(
 		headers["Content-Encoding"] = c.compressType
 	}
 	headers["Content-Type"] = contentType
+
+	var cryptoKey *rsa.PublicKey
+	if c.cryptoKeyPath != "" {
+		cryptoKey, err = pem.ReadPublicKey(c.cryptoKeyPath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read public key")
+		}
+		body, err = rsa.EncryptOAEP(sha256.New(), rand.Reader, cryptoKey, body, nil)
+		if err != nil {
+			return nil, fmt.Errorf("failed to encrypt key, %w", err)
+		}
+	}
 
 	bodyReader := bytes.NewReader(body)
 	req, err := http.NewRequest(http.MethodPost, url, bodyReader)
