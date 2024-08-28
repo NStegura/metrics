@@ -1,3 +1,3 @@
 package metrics
 
-//go:generate go run utils/rsa/generate_keys.go --public=internal/app/agent --private=internal/app/metricsapi
+//go:generate go run utils/rsa/generate/generate_keys.go --public=tmp --private=tmp

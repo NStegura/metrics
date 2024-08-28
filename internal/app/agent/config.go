@@ -1,16 +1,18 @@
 package agent
 
 import (
+	"crypto/rsa"
 	"flag"
+	"fmt"
 	"os"
 	"strconv"
 	"time"
+
+	rsaKey "github.com/NStegura/metrics/utils/rsa"
 )
 
 const (
 	defaultHTTPAddr       string        = ":8080"
-	defaultMetricCliKey   string        = ""
-	defaulPublicCryptoKey string        = ""
 	defaultLogLevel       string        = "debug"
 	defaultRateLimit      int           = 3
 	defaultReportInterval time.Duration = 10
@@ -19,24 +21,23 @@ const (
 
 // Config хранит параметры для старта приложения сбора метрик.
 type Config struct {
-	HTTPAddr        string
-	MetricCliKey    string
-	PublicCryptoKey string
-	LogLevel        string
-	RateLimit       int
-	ReportInterval  time.Duration
-	PollInterval    time.Duration
+	PublicCryptoKey     *rsa.PublicKey
+	HTTPAddr            string
+	MetricCliKey        string
+	PublicCryptoKeyPath string
+	LogLevel            string
+	RateLimit           int
+	ReportInterval      time.Duration
+	PollInterval        time.Duration
 }
 
 func NewConfig() *Config {
 	return &Config{
-		HTTPAddr:        defaultHTTPAddr,
-		MetricCliKey:    defaultMetricCliKey,
-		PublicCryptoKey: defaulPublicCryptoKey,
-		RateLimit:       defaultRateLimit,
-		ReportInterval:  defaultReportInterval,
-		PollInterval:    defaultPollInterval,
-		LogLevel:        defaultLogLevel,
+		HTTPAddr:       defaultHTTPAddr,
+		RateLimit:      defaultRateLimit,
+		ReportInterval: defaultReportInterval,
+		PollInterval:   defaultPollInterval,
+		LogLevel:       defaultLogLevel,
 	}
 }
 
@@ -60,7 +61,7 @@ func (c *Config) ParseFlags() (err error) {
 		"frequency of polling metrics from the package",
 	)
 	flag.StringVar(&c.MetricCliKey, "k", "", "add key to sign requests")
-	flag.StringVar(&c.PublicCryptoKey, "crypto-key", "", "add key to send requests")
+	flag.StringVar(&c.PublicCryptoKeyPath, "crypto-key", "", "add key to send requests")
 	flag.IntVar(&c.RateLimit, "l", defaultRateLimit, "rate limit")
 	flag.Parse()
 
@@ -89,7 +90,7 @@ func (c *Config) ParseFlags() (err error) {
 		}
 	}
 	if cryptoKey, ok := os.LookupEnv("CRYPTO_KEY"); ok {
-		c.PublicCryptoKey = cryptoKey
+		c.PublicCryptoKeyPath = cryptoKey
 	}
 
 	c.ReportInterval = time.Second * time.Duration(reportIntervalIn)
@@ -98,6 +99,13 @@ func (c *Config) ParseFlags() (err error) {
 
 	if c.RateLimit < 1 {
 		c.RateLimit = defaultRateLimit
+	}
+
+	if c.PublicCryptoKeyPath != "" {
+		c.PublicCryptoKey, err = rsaKey.ReadPublicKey(c.PublicCryptoKeyPath)
+		if err != nil {
+			return fmt.Errorf("failed to read public key: %w", err)
+		}
 	}
 	return
 }

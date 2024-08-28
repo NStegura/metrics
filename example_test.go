@@ -30,6 +30,7 @@ func startServer(l *logrus.Logger) {
 	}
 	businessLayer := business.New(r, l)
 	sConfig := metricsapi.NewConfig()
+
 	server := metricsapi.New(sConfig, businessLayer, l)
 	go func() {
 		if err := server.Start(); err != nil {

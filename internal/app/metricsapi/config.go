@@ -1,10 +1,14 @@
 package metricsapi
 
 import (
+	"crypto/rsa"
 	"flag"
+	"fmt"
 	"os"
 	"strconv"
 	"time"
+
+	rsaKey "github.com/NStegura/metrics/utils/rsa"
 )
 
 const (
@@ -13,26 +17,24 @@ const (
 
 // Config хранит параметры для старта приложения хранения метрик.
 type Config struct {
-	BindAddr         string
-	LogLevel         string
-	FileStoragePath  string
-	DatabaseDSN      string
-	RequestKey       string
-	PrivateCryptoKey string
-	StoreInterval    time.Duration
-	Restore          bool
+	PrivateCryptoKey     *rsa.PrivateKey
+	BindAddr             string
+	LogLevel             string
+	FileStoragePath      string
+	DatabaseDSN          string
+	RequestKey           string
+	PrivateCryptoKeyPath string
+	StoreInterval        time.Duration
+	Restore              bool
 }
 
 func NewConfig() *Config {
 	return &Config{
-		BindAddr:         ":8080",
-		LogLevel:         "debug",
-		FileStoragePath:  "/tmp/metrics-db.json",
-		DatabaseDSN:      "",
-		RequestKey:       "",
-		PrivateCryptoKey: "",
-		StoreInterval:    defaultStoreInerval,
-		Restore:          false,
+		BindAddr:        ":8080",
+		LogLevel:        "debug",
+		FileStoragePath: "/tmp/metrics-db.json",
+		StoreInterval:   defaultStoreInerval,
+		Restore:         false,
 	}
 }
 
@@ -51,7 +53,7 @@ func (c *Config) ParseFlags() (err error) {
 	flag.StringVar(&c.DatabaseDSN, "d", "", "database dsn")
 	flag.BoolVar(&c.Restore, "r", true, "load metrics")
 	flag.StringVar(&c.RequestKey, "k", "", "add key to sign requests")
-	flag.StringVar(&c.PrivateCryptoKey, "crypto-key", "", "add crypto key to read requests")
+	flag.StringVar(&c.PrivateCryptoKeyPath, "crypto-key", "", "add crypto key to read requests")
 	flag.Parse()
 
 	if envRunAddr, ok := os.LookupEnv("ADDRESS"); ok {
@@ -81,7 +83,7 @@ func (c *Config) ParseFlags() (err error) {
 	}
 
 	if cryptoKey, ok := os.LookupEnv("CRYPTO_KEY"); ok {
-		c.PrivateCryptoKey = cryptoKey
+		c.PrivateCryptoKeyPath = cryptoKey
 	}
 
 	if restoreIn, ok := os.LookupEnv("RESTORE"); ok {
@@ -96,5 +98,12 @@ func (c *Config) ParseFlags() (err error) {
 	}
 
 	c.StoreInterval = time.Second * time.Duration(storeInterval)
+
+	if c.PrivateCryptoKeyPath != "" {
+		c.PrivateCryptoKey, err = rsaKey.ReadPrivateKey(c.PrivateCryptoKeyPath)
+		if err != nil {
+			return fmt.Errorf("failed to load private key: %w", err)
+		}
+	}
 	return
 }

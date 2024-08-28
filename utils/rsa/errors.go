@@ -1,4 +1,4 @@
-package pem
+package rsa
 
 import "errors"
 

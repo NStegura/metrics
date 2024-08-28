@@ -18,6 +18,7 @@ services:
       ADDRESS: ':8082'
       LOG_LEVEL: 'debug'
       FILE_STORAGE_PATH: '/tmp/metrics-db.json'
+      CRYPTO_KEY: 'tmp/private_key.pem'
       DATABASE_DSN: 'postgres://usr:psswrd@metrics-postgres:5432/metrics?sslmode=disable'
       STORE_INTERVAL: '300'
       RESTORE: 'true'
@@ -40,6 +41,7 @@ services:
     environment:
       ADDRESS: 'metrics-api:8082'
       KEY: 'some key'
+      CRYPTO_KEY: 'tmp/public_key.pem'
       REPORT_INTERVAL: '10'
       POLL_INTERVAL: '2'
       LOG_LEVEL: 'debug'

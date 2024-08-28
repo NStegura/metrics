@@ -19,8 +19,8 @@ const (
 	RSAPrivateKeyType = "RSA PRIVATE KEY"
 	RSAPublicKeyType  = "RSA PUBLIC KEY"
 
-	PublicFileName  = "private_key.pem"
-	PrivateFileName = "public_key.pem"
+	PublicFileName  = "public_key.pem"
+	PrivateFileName = "private_key.pem"
 
 	BitSizeKey = 4096
 	FilePerm   = 0600
@@ -50,8 +50,8 @@ func main() {
 		log.Fatal(err)
 	}
 
-	var publickKeyPEM bytes.Buffer
-	if err = pem.Encode(&privateKeyPEM, &pem.Block{
+	var publicKeyPEM bytes.Buffer
+	if err = pem.Encode(&publicKeyPEM, &pem.Block{
 		Type:  RSAPublicKeyType,
 		Bytes: x509.MarshalPKCS1PublicKey(pubKey),
 	}); err != nil {
@@ -67,7 +67,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	err = os.WriteFile(filepath.Join(outPublicKeyOutFilePath, PublicFileName), publickKeyPEM.Bytes(), FilePerm)
+	err = os.WriteFile(filepath.Join(outPublicKeyOutFilePath, PublicFileName), publicKeyPEM.Bytes(), FilePerm)
 	if err != nil {
 		log.Fatal(err)
 	}

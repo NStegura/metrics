@@ -67,8 +67,8 @@ func (s *APIServer) Start() error {
 
 func (s *APIServer) ConfigRouter() {
 	s.Router.Use(s.requestLogger)
-	s.Router.Use(s.decryptMiddleware)
 	s.Router.Use(s.gzipMiddleware)
+	s.Router.Use(s.decryptMiddleware)
 	s.Router.Use(s.hashValidation)
 
 	s.Router.Get(`/`, s.getAllMetrics())
@@ -139,6 +139,7 @@ func (s *APIServer) updateAllMetrics() http.HandlerFunc {
 		var metrics models.MetricsList
 
 		if err := easyjson.UnmarshalFromReader(r.Body, &metrics); err != nil {
+			s.logger.Error(err)
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
