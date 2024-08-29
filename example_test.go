@@ -3,6 +3,7 @@ package metrics
 import (
 	"context"
 	"fmt"
+	"github.com/NStegura/metrics/config"
 	"github.com/NStegura/metrics/internal/app/metricsapi"
 	"github.com/NStegura/metrics/internal/business"
 	"github.com/NStegura/metrics/internal/repo"
@@ -29,7 +30,7 @@ func startServer(l *logrus.Logger) {
 		l.Fatal(err)
 	}
 	businessLayer := business.New(r, l)
-	sConfig := metricsapi.NewConfig()
+	sConfig := config.NewSrvConfig()
 
 	server := metricsapi.New(sConfig, businessLayer, l)
 	go func() {

@@ -22,7 +22,7 @@ type Checker struct {
 // New конфигурирование анализаторов.
 // По дефолту использутются staticcheck.Analyzers, simple.Analyzers и custom.NoOsExitAnalyzer.
 func New(additionalAnalyzers ...*analysis.Analyzer) (*Checker, error) {
-	cfg, err := NewConfig(`staticlint.config.json`)
+	cfg, err := NewConfig(`config.staticlint.json`)
 	if err != nil {
 		return nil, fmt.Errorf("failed to start analyzer config: %w", err)
 	}

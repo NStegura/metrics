@@ -24,7 +24,7 @@ buildapi: ## Build api app
 
 .PHONY: runapi
 runapi: ## Run api app
-	go run -ldflags  "-X main.buildVersion=v1.0.0 -X 'main.buildDate=$(date +'%Y/%m/%d %H:%M:%S')' -X main.buildCommit=v1" cmd/server/main.go
+	go run -ldflags  "-X main.buildVersion=v1.0.0 -X 'main.buildDate=$(date +'%Y/%m/%d %H:%M:%S')' -X main.buildCommit=v1" cmd/server/main.go -c config.server.json
 
 .PHONY: buildagent
 buildagent: ## Build agent app
@@ -80,6 +80,7 @@ fmt:
 	go fmt ./...
 	goimports -w -local github.com/NStegura/metrics ./cmd
 	goimports -w -local github.com/NStegura/metrics ./internal
+	goimports -w -local github.com/NStegura/metrics ./config
 
 .PHONY: lint
 lint:

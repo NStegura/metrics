@@ -1,0 +1,13 @@
+{
+  "StaticCheck": [
+    "SA4006",
+    "SA5000",
+    "SA6000",
+    "SA9004"
+  ],
+  "SimpleCheck": [
+    "S1039"
+  ],
+  "StaticAll": true,
+  "SimpleAll": false
+}

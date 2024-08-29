@@ -6,6 +6,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/NStegura/metrics/config"
+
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/mem"
 	"github.com/sirupsen/logrus"
@@ -59,15 +61,15 @@ const (
 )
 
 type Agent struct {
-	config     *Config
+	cfg        *config.AgentConfig
 	metricsCli MetricCli
 
 	logger *logrus.Logger
 }
 
-func New(config *Config, metricsCli MetricCli, logger *logrus.Logger) *Agent {
+func New(config *config.AgentConfig, metricsCli MetricCli, logger *logrus.Logger) *Agent {
 	return &Agent{
-		config:     config,
+		cfg:        config,
 		metricsCli: metricsCli,
 		logger:     logger,
 	}
@@ -80,7 +82,7 @@ func (ag *Agent) Start() error {
 	metricsCh := ag.collectMetrics(&wg)
 	metricsJobCh := ag.addMetricsToJobs(&wg, metricsCh)
 
-	for w := 1; w <= ag.config.RateLimit; w++ {
+	for w := 1; w <= ag.cfg.RateLimit; w++ {
 		ag.sendMetrics(w, &wg, metricsJobCh)
 	}
 
@@ -89,8 +91,8 @@ func (ag *Agent) Start() error {
 }
 
 func (ag *Agent) collectMetrics(wg *sync.WaitGroup) chan models.Metrics {
-	metricsPollCh := make(chan models.Metrics, ag.config.RateLimit)
-	pollTicker := time.NewTicker(ag.config.PollInterval)
+	metricsPollCh := make(chan models.Metrics, ag.cfg.RateLimit)
+	pollTicker := time.NewTicker(time.Duration(ag.cfg.PollInterval))
 
 	wg.Add(1)
 	go func() {
@@ -114,8 +116,8 @@ func (ag *Agent) collectMetrics(wg *sync.WaitGroup) chan models.Metrics {
 }
 
 func (ag *Agent) addMetricsToJobs(wg *sync.WaitGroup, metricsPollCh <-chan models.Metrics) chan models.Metrics {
-	jobs := make(chan models.Metrics, ag.config.RateLimit)
-	reportTicker := time.NewTicker(ag.config.ReportInterval)
+	jobs := make(chan models.Metrics, ag.cfg.RateLimit)
+	reportTicker := time.NewTicker(time.Duration(ag.cfg.ReportInterval))
 
 	wg.Add(1)
 	go func() {

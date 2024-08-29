@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/NStegura/metrics/config"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/mailru/easyjson"
 	"github.com/sirupsen/logrus"
@@ -38,16 +40,16 @@ const (
 
 // APIServer хранит сущности для работы сервера.
 type APIServer struct {
-	config *Config
+	cfg    *config.SrvConfig
 	bll    Bll
 	Router *chi.Mux
 
 	logger *logrus.Logger
 }
 
-func New(config *Config, bll Bll, logger *logrus.Logger) *APIServer {
+func New(config *config.SrvConfig, bll Bll, logger *logrus.Logger) *APIServer {
 	return &APIServer{
-		config: config,
+		cfg:    config,
 		bll:    bll,
 		Router: chi.NewRouter(),
 		logger: logger,
@@ -58,8 +60,8 @@ func New(config *Config, bll Bll, logger *logrus.Logger) *APIServer {
 func (s *APIServer) Start() error {
 	s.ConfigRouter()
 
-	s.logger.Infof("starting APIServer %s", s.config.BindAddr)
-	if err := http.ListenAndServe(s.config.BindAddr, s.Router); err != nil {
+	s.logger.Infof("starting APIServer %s", s.cfg.BindAddr)
+	if err := http.ListenAndServe(s.cfg.BindAddr, s.Router); err != nil {
 		return fmt.Errorf("failed to start server: %w", err)
 	}
 	return nil

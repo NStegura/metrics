@@ -9,6 +9,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/NStegura/metrics/config"
+
 	"github.com/mailru/easyjson"
 
 	"github.com/NStegura/metrics/internal/app/metricsapi/models"
@@ -57,7 +59,7 @@ func initTestHelper(t *testing.T) *testHelper {
 	r, err := repo.New(ctx, "", 100, "", false, l)
 	require.NoError(t, err)
 	businessLayer := business.New(r, l)
-	server := New(NewConfig(), businessLayer, l)
+	server := New(config.NewSrvConfig(), businessLayer, l)
 	server.ConfigRouter()
 
 	ts := httptest.NewServer(server.Router)

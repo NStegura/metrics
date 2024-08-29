@@ -12,6 +12,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/NStegura/metrics/config"
+
 	"github.com/NStegura/metrics/internal/monitoring/pprof"
 
 	"github.com/sirupsen/logrus"
@@ -31,7 +33,7 @@ var (
 	buildCommit  string
 )
 
-func configureLogger(config *metricsapi.Config) (*logrus.Logger, error) {
+func configureLogger(config *config.SrvConfig) (*logrus.Logger, error) {
 	logger := logrus.New()
 	logger.Formatter = &logrus.TextFormatter{FullTimestamp: true}
 	level, err := logrus.ParseLevel(config.LogLevel)
@@ -47,22 +49,22 @@ func runRest() error {
 	ctx, cancelCtx := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancelCtx()
 
-	config := metricsapi.NewConfig()
-	err := config.ParseFlags()
+	cfg := config.NewSrvConfig()
+	err := cfg.ParseFlags()
 	if err != nil {
 		return fmt.Errorf("failed to parse config: %w", err)
 	}
-	logger, err := configureLogger(config)
+	logger, err := configureLogger(cfg)
 	if err != nil {
 		return err
 	}
 
 	db, err := repo.New(
 		ctx,
-		config.DatabaseDSN,
-		config.StoreInterval,
-		config.FileStoragePath,
-		config.Restore,
+		cfg.DatabaseDSN,
+		time.Duration(cfg.StoreInterval),
+		cfg.FileStoragePath,
+		cfg.Restore,
 		logger,
 	)
 	if err != nil {
@@ -86,7 +88,7 @@ func runRest() error {
 	componentsErrs := make(chan error, 1)
 
 	newServer := metricsapi.New(
-		config,
+		cfg,
 		business.New(db, logger),
 		logger,
 	)

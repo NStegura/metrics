@@ -5,6 +5,8 @@ import (
 	"log"
 	"strings"
 
+	"github.com/NStegura/metrics/config"
+
 	"github.com/NStegura/metrics/internal/clients/metric"
 
 	"github.com/sirupsen/logrus"
@@ -18,7 +20,7 @@ var (
 	buildCommit  string
 )
 
-func configureLogger(config *agent.Config) (*logrus.Logger, error) {
+func configureLogger(config *config.AgentConfig) (*logrus.Logger, error) {
 	logger := logrus.New()
 	level, err := logrus.ParseLevel(config.LogLevel)
 	if err != nil {
@@ -30,25 +32,25 @@ func configureLogger(config *agent.Config) (*logrus.Logger, error) {
 }
 
 func startAgent() error {
-	config := agent.NewConfig()
-	err := config.ParseFlags()
+	cfg := config.NewAgentConfig()
+	err := cfg.ParseFlags()
 	if err != nil {
 		return fmt.Errorf("failed to parse config: %w", err)
 	}
-	logger, err := configureLogger(config)
+	logger, err := configureLogger(cfg)
 	if err != nil {
 		return fmt.Errorf("failed to configure logger: %w", err)
 	}
 	metricsCli, err := metric.New(
-		config.HTTPAddr,
-		config.MetricCliKey,
-		config.PublicCryptoKey,
+		cfg.HTTPAddr,
+		cfg.MetricCliKey,
+		cfg.PublicCryptoKey,
 		logger,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to init metric client: %w", err)
 	}
-	ag := agent.New(config, metricsCli, logger)
+	ag := agent.New(cfg, metricsCli, logger)
 	if err = ag.Start(); err != nil {
 		return fmt.Errorf("failed to start agent: %w", err)
 	}
