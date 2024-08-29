@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"os/signal"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/NStegura/metrics/config"
@@ -46,7 +46,7 @@ func configureLogger(config *config.SrvConfig) (*logrus.Logger, error) {
 }
 
 func runRest() error {
-	ctx, cancelCtx := signal.NotifyContext(context.Background(), os.Interrupt)
+	ctx, cancelCtx := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	defer cancelCtx()
 
 	cfg := config.NewSrvConfig()
