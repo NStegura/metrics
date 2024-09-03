@@ -26,14 +26,14 @@ type Client struct {
 	client       *http.Client
 	logger       *logrus.Logger
 	URL          string
-	key          string
+	bodyHashKey  string
 	cryptoKey    *rsa.PublicKey
 	compressType string
 }
 
 func New(
 	addr string,
-	key string,
+	bodyHashKey string,
 	cryptoKey *rsa.PublicKey,
 	logger *logrus.Logger,
 ) (*Client, error) {
@@ -47,7 +47,7 @@ func New(
 	return &Client{
 		client:       &http.Client{},
 		URL:          addr,
-		key:          key,
+		bodyHashKey:  bodyHashKey,
 		cryptoKey:    cryptoKey,
 		logger:       logger,
 		compressType: "gzip",
@@ -184,8 +184,8 @@ func (c *Client) post(
 ) (resp *http.Response, err error) {
 	headers := make(map[string]string)
 
-	if c.key != "" {
-		h := hmac.New(sha256.New, []byte(c.key))
+	if c.bodyHashKey != "" {
+		h := hmac.New(sha256.New, []byte(c.bodyHashKey))
 		_, err = h.Write(body)
 		if err != nil {
 			return nil, fmt.Errorf("failed to write body hash: %w", err)

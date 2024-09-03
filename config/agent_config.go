@@ -24,7 +24,7 @@ type AgentConfig struct {
 	PublicCryptoKey     *rsa.PublicKey `json:"public_crypto_key"`
 	PublicCryptoKeyPath string         `json:"crypto_key"`
 	HTTPAddr            string         `json:"address"`
-	MetricCliKey        string         `json:"metric_cli_key"`
+	BodyHashKey         string         `json:"body_hash_key"`
 	LogLevel            string         `json:"log_level"`
 	RateLimit           int            `json:"rate_limit"`
 	ReportInterval      Duration       `json:"report_interval"`
@@ -73,7 +73,7 @@ func (c *AgentConfig) ParseFlags() (err error) {
 		int(defaultPollInterval),
 		"frequency of polling metrics from the package",
 	)
-	flag.StringVar(&c.MetricCliKey, "k", "", "add key to sign requests")
+	flag.StringVar(&c.BodyHashKey, "k", "", "add key to sign requests")
 	flag.StringVar(&c.PublicCryptoKeyPath, "crypto-key", "", "add key to send requests")
 	flag.IntVar(&c.RateLimit, "l", defaultRateLimit, "rate limit")
 	flag.Parse()
@@ -94,7 +94,7 @@ func (c *AgentConfig) ParseFlags() (err error) {
 		}
 	}
 	if key, ok := os.LookupEnv("KEY"); ok {
-		c.MetricCliKey = key
+		c.BodyHashKey = key
 	}
 	if rl, ok := os.LookupEnv("RATE_LIMIT"); ok {
 		rateLimitIn, err = strconv.Atoi(rl)
