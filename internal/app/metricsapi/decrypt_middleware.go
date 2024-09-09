@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/rand"
 	"crypto/sha256"
-	"fmt"
 	"io"
 	"net/http"
 
@@ -23,7 +22,7 @@ func (s *APIServer) decryptMiddleware(h http.Handler) http.Handler {
 				sha256.New(), rand.Reader, s.cryptoKey, bodyBytes, nil)
 			if err != nil {
 				http.Error(w, "failed to decrypt body", http.StatusBadRequest)
-				fmt.Println(err)
+				s.logger.Error(err)
 				return
 			}
 			r.Body = io.NopCloser(bytes.NewBuffer(decryptedMessage))
