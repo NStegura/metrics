@@ -17,7 +17,7 @@ func TestConfig__ok(t *testing.T) {
 	assert.Equal(t, cfg.LogLevel, "debug")
 	assert.Equal(t, cfg.FileStoragePath, "/tmp/metrics-db.json")
 	assert.Equal(t, cfg.DatabaseDSN, "")
-	assert.Equal(t, cfg.RequestKey, "")
+	assert.Equal(t, cfg.BodyHashKey, "")
 	assert.Equal(t, cfg.StoreInterval, defaultStoreInerval)
 }
 
@@ -46,6 +46,6 @@ func TestConfig__ParseEnvs(t *testing.T) {
 	assert.Equal(t, cfg.LogLevel, "debug")
 	assert.Equal(t, cfg.FileStoragePath, "/testpath/metrics-db.json")
 	assert.Equal(t, cfg.DatabaseDSN, "postgresql://localhost/mydb?user=other&password=secret")
-	assert.Equal(t, cfg.RequestKey, "somekey")
+	assert.Equal(t, cfg.BodyHashKey, "somekey")
 	assert.Equal(t, time.Duration(cfg.StoreInterval), time.Second)
 }

@@ -19,7 +19,7 @@ type SrvConfig struct {
 	LogLevel             string   `json:"log_level"`
 	FileStoragePath      string   `json:"store_file"`
 	DatabaseDSN          string   `json:"database_dsn"`
-	RequestKey           string   `json:"request_key"`
+	BodyHashKey          string   `json:"request_key"`
 	StoreInterval        Duration `json:"store_interval"`
 	Restore              bool     `json:"restore"`
 }
@@ -62,7 +62,7 @@ func (c *SrvConfig) ParseFlags() (err error) {
 	flag.StringVar(&c.FileStoragePath, "f", "/tmp/metrics-db.json", "storage path")
 	flag.StringVar(&c.DatabaseDSN, "d", "", "database dsn")
 	flag.BoolVar(&c.Restore, "r", true, "load metrics")
-	flag.StringVar(&c.RequestKey, "k", "", "add key to sign requests")
+	flag.StringVar(&c.BodyHashKey, "k", "", "add key to sign requests")
 	flag.StringVar(&c.PrivateCryptoKeyPath, "crypto-key", "", "add crypto key to read requests")
 	flag.Parse()
 
@@ -89,7 +89,7 @@ func (c *SrvConfig) ParseFlags() (err error) {
 		}
 	}
 	if key, ok := os.LookupEnv("KEY"); ok {
-		c.RequestKey = key
+		c.BodyHashKey = key
 	}
 
 	if cryptoKey, ok := os.LookupEnv("CRYPTO_KEY"); ok {
