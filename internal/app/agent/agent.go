@@ -1,9 +1,12 @@
 package agent
 
 import (
+	"context"
 	"math/rand"
+	"os/signal"
 	"runtime"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/NStegura/metrics/config"
@@ -77,20 +80,26 @@ func New(config *config.AgentConfig, metricsCli MetricCli, logger *logrus.Logger
 
 // Start начинает сбор и отправку метрик.
 func (ag *Agent) Start() error {
+	ctx, cancelCtx := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	defer cancelCtx()
+
 	var wg sync.WaitGroup
 
-	metricsCh := ag.collectMetrics(&wg)
-	metricsJobCh := ag.addMetricsToJobs(&wg, metricsCh)
+	metricsCh := ag.collectMetrics(ctx, &wg)
+	metricsJobCh := ag.addMetricsToJobs(ctx, &wg, metricsCh)
 
 	for w := 1; w <= ag.cfg.RateLimit; w++ {
-		ag.sendMetrics(w, &wg, metricsJobCh)
+		ag.sendMetrics(ctx, w, &wg, metricsJobCh)
 	}
 
 	wg.Wait()
 	return nil
 }
 
-func (ag *Agent) collectMetrics(wg *sync.WaitGroup) chan models.Metrics {
+func (ag *Agent) collectMetrics(
+	ctx context.Context,
+	wg *sync.WaitGroup,
+) chan models.Metrics {
 	metricsPollCh := make(chan models.Metrics, ag.cfg.RateLimit)
 	pollTicker := time.NewTicker(time.Duration(ag.cfg.PollInterval))
 
@@ -102,20 +111,30 @@ func (ag *Agent) collectMetrics(wg *sync.WaitGroup) chan models.Metrics {
 
 		var counter int64 = 0
 
-		for range pollTicker.C {
-			ag.logger.Info("get metrics tick")
-			counter++
-			statMetrics := ag.getMetricsFromStats(counter)
-			metricsPollCh <- statMetrics
-			psMetrics := ag.getPSMetrics()
-			metricsPollCh <- psMetrics
+		for {
+			select {
+			case <-ctx.Done():
+				ag.logger.Info("collect metrics stop by ctx")
+				return
+			case <-pollTicker.C:
+				ag.logger.Info("get metrics tick")
+				counter++
+				statMetrics := ag.getMetricsFromStats(counter)
+				metricsPollCh <- statMetrics
+				psMetrics := ag.getPSMetrics()
+				metricsPollCh <- psMetrics
+			}
 		}
 	}()
 
 	return metricsPollCh
 }
 
-func (ag *Agent) addMetricsToJobs(wg *sync.WaitGroup, metricsPollCh <-chan models.Metrics) chan models.Metrics {
+func (ag *Agent) addMetricsToJobs(
+	ctx context.Context,
+	wg *sync.WaitGroup,
+	metricsPollCh <-chan models.Metrics,
+) chan models.Metrics {
 	jobs := make(chan models.Metrics, ag.cfg.RateLimit)
 	reportTicker := time.NewTicker(time.Duration(ag.cfg.ReportInterval))
 
@@ -124,16 +143,21 @@ func (ag *Agent) addMetricsToJobs(wg *sync.WaitGroup, metricsPollCh <-chan model
 		defer close(jobs)
 		defer reportTicker.Stop()
 		defer wg.Done()
-
-		for range reportTicker.C {
-			ag.logger.Info("add jobs tick")
-			for len(metricsPollCh) > 0 {
-				metrics := <-metricsPollCh
-				select {
-				case jobs <- metrics:
-					ag.logger.Info("add job metric")
-				default:
-					ag.logger.Info("skip job")
+		for {
+			select {
+			case <-ctx.Done():
+				ag.logger.Info("add metrics to job stop by ctx")
+				return
+			case <-reportTicker.C:
+				ag.logger.Info("add jobs tick")
+				for len(metricsPollCh) > 0 {
+					metrics := <-metricsPollCh
+					select {
+					case jobs <- metrics:
+						ag.logger.Info("add job metric")
+					default:
+						ag.logger.Info("skip job")
+					}
 				}
 			}
 		}
@@ -142,16 +166,22 @@ func (ag *Agent) addMetricsToJobs(wg *sync.WaitGroup, metricsPollCh <-chan model
 	return jobs
 }
 
-func (ag *Agent) sendMetrics(workerID int, wg *sync.WaitGroup, metricsCh <-chan models.Metrics) {
+func (ag *Agent) sendMetrics(ctx context.Context, workerID int, wg *sync.WaitGroup, metricsCh <-chan models.Metrics) {
 	ag.logger.Infof("start worker %v", workerID)
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		for metrics := range metricsCh {
-			err := ag.metricsCli.UpdateMetrics(metric.CastToMetrics(metrics))
-			if err != nil {
-				ag.logger.Error(err)
+		for {
+			select {
+			case <-ctx.Done():
+				ag.logger.Infof("send metrics worker %v stop by ctx", workerID)
+				return
+			case metrics := <-metricsCh:
+				err := ag.metricsCli.UpdateMetrics(metric.CastToMetrics(metrics))
+				if err != nil {
+					ag.logger.Error(err)
+				}
 			}
 		}
 	}()

@@ -34,14 +34,23 @@ type Client struct {
 func New(
 	addr string,
 	bodyHashKey string,
-	cryptoKey *rsa.PublicKey,
+	cryptoKeyPath string,
 	logger *logrus.Logger,
 ) (*Client, error) {
-	var err error
+	var (
+		cryptoKey *rsa.PublicKey
+		err       error
+	)
 	if !strings.HasPrefix(addr, "http") {
 		addr, err = url.JoinPath("http:", addr)
 		if err != nil {
 			return nil, fmt.Errorf("failed to init client, %w", err)
+		}
+	}
+	if cryptoKeyPath != "" {
+		cryptoKey, err = rsaKeys.ReadPublicKey(cryptoKeyPath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read public key: %w", err)
 		}
 	}
 	return &Client{

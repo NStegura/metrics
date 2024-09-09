@@ -1,14 +1,11 @@
 package config
 
 import (
-	"crypto/rsa"
 	"flag"
 	"fmt"
 	"os"
 	"strconv"
 	"time"
-
-	rsaKey "github.com/NStegura/metrics/utils/rsa"
 )
 
 const (
@@ -17,15 +14,14 @@ const (
 
 // SrvConfig хранит параметры для старта приложения хранения метрик.
 type SrvConfig struct {
-	PrivateCryptoKey     *rsa.PrivateKey `json:"private_crypto_key"`
-	PrivateCryptoKeyPath string          `json:"crypto_key"`
-	BindAddr             string          `json:"address"`
-	LogLevel             string          `json:"log_level"`
-	FileStoragePath      string          `json:"store_file"`
-	DatabaseDSN          string          `json:"database_dsn"`
-	RequestKey           string          `json:"request_key"`
-	StoreInterval        Duration        `json:"store_interval"`
-	Restore              bool            `json:"restore"`
+	PrivateCryptoKeyPath string   `json:"crypto_key"`
+	BindAddr             string   `json:"address"`
+	LogLevel             string   `json:"log_level"`
+	FileStoragePath      string   `json:"store_file"`
+	DatabaseDSN          string   `json:"database_dsn"`
+	RequestKey           string   `json:"request_key"`
+	StoreInterval        Duration `json:"store_interval"`
+	Restore              bool     `json:"restore"`
 }
 
 func NewSrvConfig() *SrvConfig {
@@ -112,13 +108,6 @@ func (c *SrvConfig) ParseFlags() (err error) {
 	}
 
 	c.StoreInterval = Duration(time.Second * time.Duration(storeInterval))
-
-	if c.PrivateCryptoKeyPath != "" {
-		c.PrivateCryptoKey, err = rsaKey.ReadPrivateKey(c.PrivateCryptoKeyPath)
-		if err != nil {
-			return fmt.Errorf("failed to load private key: %w", err)
-		}
-	}
 	if err = logToStdOUT(c); err != nil {
 		return err
 	}

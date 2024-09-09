@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"context"
 	"sync"
 	"testing"
 
@@ -27,7 +28,7 @@ func TestAgent_collectMetrics(t *testing.T) {
 	ag := New(cfg, metricsCli, logger)
 
 	var wg sync.WaitGroup
-	metricsCh := ag.collectMetrics(&wg)
+	metricsCh := ag.collectMetrics(context.Background(), &wg)
 	// Проверяем, что канал метрик создается успешно
 	_, ok := <-metricsCh
 	if ok {

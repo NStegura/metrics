@@ -2,12 +2,15 @@ package metricsapi
 
 import (
 	"context"
+	"crypto/rsa"
 	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	rsaKey "github.com/NStegura/metrics/utils/rsa"
 
 	"github.com/NStegura/metrics/config"
 
@@ -40,20 +43,32 @@ const (
 
 // APIServer хранит сущности для работы сервера.
 type APIServer struct {
-	cfg    *config.SrvConfig
-	bll    Bll
-	Router *chi.Mux
+	cfg       *config.SrvConfig
+	cryptoKey *rsa.PrivateKey
+	bll       Bll
+	Router    *chi.Mux
 
 	logger *logrus.Logger
 }
 
-func New(config *config.SrvConfig, bll Bll, logger *logrus.Logger) *APIServer {
-	return &APIServer{
-		cfg:    config,
-		bll:    bll,
-		Router: chi.NewRouter(),
-		logger: logger,
+func New(config *config.SrvConfig, bll Bll, logger *logrus.Logger) (*APIServer, error) {
+	var (
+		cryptoKey *rsa.PrivateKey
+		err       error
+	)
+	if config.PrivateCryptoKeyPath != "" {
+		cryptoKey, err = rsaKey.ReadPrivateKey(config.PrivateCryptoKeyPath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load private key: %w", err)
+		}
 	}
+	return &APIServer{
+		cfg:       config,
+		cryptoKey: cryptoKey,
+		bll:       bll,
+		Router:    chi.NewRouter(),
+		logger:    logger,
+	}, nil
 }
 
 // Start запускает сервер.

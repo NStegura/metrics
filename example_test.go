@@ -32,7 +32,10 @@ func startServer(l *logrus.Logger) {
 	businessLayer := business.New(r, l)
 	sConfig := config.NewSrvConfig()
 
-	server := metricsapi.New(sConfig, businessLayer, l)
+	server, err := metricsapi.New(sConfig, businessLayer, l)
+	if err != nil {
+		l.Fatal(err)
+	}
 	go func() {
 		if err := server.Start(); err != nil {
 			log.Fatal(err)

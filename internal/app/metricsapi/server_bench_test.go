@@ -25,7 +25,7 @@ func initBenchHelper() *benchHelper {
 	l := logrus.New()
 	r, _ := repo.New(ctx, "", 100, "", false, l)
 	businessLayer := business.New(r, l)
-	server := New(config.NewSrvConfig(), businessLayer, l)
+	server, _ := New(config.NewSrvConfig(), businessLayer, l)
 	server.ConfigRouter()
 
 	ts := httptest.NewServer(server.Router)

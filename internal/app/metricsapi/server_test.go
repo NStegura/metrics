@@ -59,7 +59,8 @@ func initTestHelper(t *testing.T) *testHelper {
 	r, err := repo.New(ctx, "", 100, "", false, l)
 	require.NoError(t, err)
 	businessLayer := business.New(r, l)
-	server := New(config.NewSrvConfig(), businessLayer, l)
+	server, err := New(config.NewSrvConfig(), businessLayer, l)
+	require.NoError(t, err)
 	server.ConfigRouter()
 
 	ts := httptest.NewServer(server.Router)

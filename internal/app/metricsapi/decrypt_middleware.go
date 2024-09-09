@@ -13,14 +13,14 @@ import (
 
 func (s *APIServer) decryptMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if s.cfg.PrivateCryptoKey != nil {
+		if s.cryptoKey != nil {
 			bodyBytes, err := io.ReadAll(r.Body)
 			if err != nil {
 				http.Error(w, "failed to read body", http.StatusBadRequest)
 				return
 			}
 			decryptedMessage, err := rsaKeys.DecryptOAEP(
-				sha256.New(), rand.Reader, s.cfg.PrivateCryptoKey, bodyBytes, nil)
+				sha256.New(), rand.Reader, s.cryptoKey, bodyBytes, nil)
 			if err != nil {
 				http.Error(w, "failed to decrypt body", http.StatusBadRequest)
 				fmt.Println(err)

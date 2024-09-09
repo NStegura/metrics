@@ -1,14 +1,11 @@
 package config
 
 import (
-	"crypto/rsa"
 	"flag"
 	"fmt"
 	"os"
 	"strconv"
 	"time"
-
-	rsaKey "github.com/NStegura/metrics/utils/rsa"
 )
 
 const (
@@ -21,14 +18,13 @@ const (
 
 // AgentConfig хранит параметры для старта приложения сбора метрик.
 type AgentConfig struct {
-	PublicCryptoKey     *rsa.PublicKey `json:"public_crypto_key"`
-	PublicCryptoKeyPath string         `json:"crypto_key"`
-	HTTPAddr            string         `json:"address"`
-	BodyHashKey         string         `json:"body_hash_key"`
-	LogLevel            string         `json:"log_level"`
-	RateLimit           int            `json:"rate_limit"`
-	ReportInterval      Duration       `json:"report_interval"`
-	PollInterval        Duration       `json:"poll_interval"`
+	PublicCryptoKeyPath string   `json:"crypto_key"`
+	HTTPAddr            string   `json:"address"`
+	BodyHashKey         string   `json:"body_hash_key"`
+	LogLevel            string   `json:"log_level"`
+	RateLimit           int      `json:"rate_limit"`
+	ReportInterval      Duration `json:"report_interval"`
+	PollInterval        Duration `json:"poll_interval"`
 }
 
 func NewAgentConfig() *AgentConfig {
@@ -114,12 +110,6 @@ func (c *AgentConfig) ParseFlags() (err error) {
 		c.RateLimit = defaultRateLimit
 	}
 
-	if c.PublicCryptoKeyPath != "" {
-		c.PublicCryptoKey, err = rsaKey.ReadPublicKey(c.PublicCryptoKeyPath)
-		if err != nil {
-			return fmt.Errorf("failed to read public key: %w", err)
-		}
-	}
 	if err = logToStdOUT(c); err != nil {
 		return err
 	}

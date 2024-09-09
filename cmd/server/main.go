@@ -87,11 +87,14 @@ func runRest() error {
 
 	componentsErrs := make(chan error, 1)
 
-	newServer := metricsapi.New(
+	newServer, err := metricsapi.New(
 		cfg,
 		business.New(db, logger),
 		logger,
 	)
+	if err != nil {
+		return fmt.Errorf("failed to init server: %w", err)
+	}
 	go func(errs chan<- error) {
 		if err = newServer.Start(); err != nil {
 			if errors.Is(err, http.ErrServerClosed) {
