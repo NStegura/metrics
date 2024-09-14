@@ -109,7 +109,7 @@ func (ag *Agent) collectMetrics(
 		defer pollTicker.Stop()
 		defer wg.Done()
 
-		var counter int64 = 0
+		var counter int64
 
 		for {
 			select {

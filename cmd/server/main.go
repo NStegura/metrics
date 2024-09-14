@@ -12,14 +12,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/NStegura/metrics/config"
-
-	"github.com/NStegura/metrics/internal/monitoring/pprof"
-
 	"github.com/sirupsen/logrus"
 
+	"github.com/NStegura/metrics/config"
 	"github.com/NStegura/metrics/internal/app/metricsapi"
 	"github.com/NStegura/metrics/internal/business"
+	"github.com/NStegura/metrics/internal/monitoring/pprof"
 	"github.com/NStegura/metrics/internal/repo"
 )
 
