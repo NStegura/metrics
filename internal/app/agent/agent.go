@@ -146,13 +146,16 @@ func (ag *Agent) addMetricsToJobs(
 		for {
 			select {
 			case <-ctx.Done():
-				ag.logger.Info("add metrics to job stop by ctx")
+				ag.logger.Info("add metrics to jobs stop by ctx")
 				return
 			case <-reportTicker.C:
 				ag.logger.Info("add jobs tick")
 				for len(metricsPollCh) > 0 {
 					metrics := <-metricsPollCh
 					select {
+					case <-ctx.Done():
+						ag.logger.Info("add metric to job stop by ctx")
+						return
 					case jobs <- metrics:
 						ag.logger.Info("add job metric")
 					default:

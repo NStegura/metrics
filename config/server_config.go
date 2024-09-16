@@ -20,6 +20,7 @@ type SrvConfig struct {
 	FileStoragePath      string   `json:"store_file"`
 	DatabaseDSN          string   `json:"database_dsn"`
 	BodyHashKey          string   `json:"request_key"`
+	TrustedSubnet        string   `json:"trusted_subnet"`
 	StoreInterval        Duration `json:"store_interval"`
 	Restore              bool     `json:"restore"`
 }
@@ -64,6 +65,7 @@ func (c *SrvConfig) ParseFlags() (err error) {
 	flag.BoolVar(&c.Restore, "r", true, "load metrics")
 	flag.StringVar(&c.BodyHashKey, "k", "", "add key to sign requests")
 	flag.StringVar(&c.PrivateCryptoKeyPath, "crypto-key", "", "add crypto key to read requests")
+	flag.StringVar(&c.TrustedSubnet, "t", "", "trusted ip addr")
 	flag.Parse()
 
 	if envRunAddr, ok := os.LookupEnv("ADDRESS"); ok {
@@ -105,6 +107,10 @@ func (c *SrvConfig) ParseFlags() (err error) {
 		default:
 			c.Restore = true
 		}
+	}
+
+	if trustedSubnet, ok := os.LookupEnv("TRUSTED_SUBNET"); ok {
+		c.TrustedSubnet = trustedSubnet
 	}
 
 	c.StoreInterval = Duration(time.Second * time.Duration(storeInterval))

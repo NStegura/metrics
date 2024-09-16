@@ -16,6 +16,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/NStegura/metrics/utils/ip"
+
 	rsaKeys "github.com/NStegura/metrics/utils/rsa"
 
 	"github.com/sirupsen/logrus"
@@ -218,6 +220,12 @@ func (c *Client) post(
 		headers["Content-Encoding"] = c.compressType
 	}
 	headers["Content-Type"] = contentType
+
+	selfIP, err := ip.GetIP()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get ip: %w", err)
+	}
+	headers["X-Real-IP"] = selfIP
 
 	bodyReader := bytes.NewReader(body)
 	req, err := http.NewRequest(http.MethodPost, url, bodyReader)

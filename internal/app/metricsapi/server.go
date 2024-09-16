@@ -5,6 +5,7 @@ import (
 	"crypto/rsa"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"strconv"
 	"strings"
@@ -43,10 +44,11 @@ const (
 
 // APIServer хранит сущности для работы сервера.
 type APIServer struct {
-	cfg       *config.SrvConfig
-	cryptoKey *rsa.PrivateKey
-	bll       Bll
-	Router    *chi.Mux
+	cfg           *config.SrvConfig
+	cryptoKey     *rsa.PrivateKey
+	trustedSubnet *net.IPNet
+	bll           Bll
+	Router        *chi.Mux
 
 	logger *logrus.Logger
 }
@@ -54,6 +56,7 @@ type APIServer struct {
 func New(config *config.SrvConfig, bll Bll, logger *logrus.Logger) (*APIServer, error) {
 	var (
 		cryptoKey *rsa.PrivateKey
+		subnet    *net.IPNet
 		err       error
 	)
 	if config.PrivateCryptoKeyPath != "" {
@@ -62,12 +65,19 @@ func New(config *config.SrvConfig, bll Bll, logger *logrus.Logger) (*APIServer, 
 			return nil, fmt.Errorf("failed to load private key: %w", err)
 		}
 	}
+	if config.TrustedSubnet != "" {
+		_, subnet, err = net.ParseCIDR(config.TrustedSubnet)
+		if err != nil {
+			return nil, fmt.Errorf("invalid trusted subnet: %w", err)
+		}
+	}
 	return &APIServer{
-		cfg:       config,
-		cryptoKey: cryptoKey,
-		bll:       bll,
-		Router:    chi.NewRouter(),
-		logger:    logger,
+		cfg:           config,
+		cryptoKey:     cryptoKey,
+		trustedSubnet: subnet,
+		bll:           bll,
+		Router:        chi.NewRouter(),
+		logger:        logger,
 	}, nil
 }
 
@@ -84,6 +94,7 @@ func (s *APIServer) Start() error {
 
 func (s *APIServer) ConfigRouter() {
 	s.Router.Use(s.requestLogger)
+	s.Router.Use(s.trustedSubnetMiddleware)
 	s.Router.Use(s.gzipMiddleware)
 	s.Router.Use(s.decryptMiddleware)
 	s.Router.Use(s.hashValidation)
