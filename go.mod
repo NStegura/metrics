@@ -1,6 +1,6 @@
 module github.com/NStegura/metrics
 
-go 1.21.3
+go 1.22.0
 
 require (
 	github.com/go-chi/chi/v5 v5.0.10
@@ -13,6 +13,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.8.4
 	golang.org/x/tools v0.15.0
+	gopkg.in/yaml.v3 v3.0.1
 	honnef.co/go/tools v0.4.7
 )
 
@@ -41,5 +42,4 @@ require (
 	golang.org/x/sync v0.5.0 // indirect
 	golang.org/x/sys v0.15.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

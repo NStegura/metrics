@@ -1,5 +1,5 @@
 # Этап, на котором выполняется сборка приложения
-FROM golang:1.21.3-alpine as builder
+FROM golang:1.22.0-alpine as builder
 RUN apk update && apk add --no-cache git
 WORKDIR /build
 COPY go.mod go.sum ./

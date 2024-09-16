@@ -1,8 +1,11 @@
 package agent
 
 import (
+	"context"
 	"sync"
 	"testing"
+
+	"github.com/NStegura/metrics/config"
 
 	"github.com/golang/mock/gomock"
 	"github.com/sirupsen/logrus"
@@ -20,12 +23,12 @@ func TestAgent_collectMetrics(t *testing.T) {
 	metricsCli := mock_agent.NewMockMetricCli(ctrl)
 	logger := logrus.New()
 
-	config := NewConfig()
+	cfg := config.NewAgentConfig()
 
-	ag := New(config, metricsCli, logger)
+	ag := New(cfg, metricsCli, logger)
 
 	var wg sync.WaitGroup
-	metricsCh := ag.collectMetrics(&wg)
+	metricsCh := ag.collectMetrics(context.Background(), &wg)
 	// Проверяем, что канал метрик создается успешно
 	_, ok := <-metricsCh
 	if ok {

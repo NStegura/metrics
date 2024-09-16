@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"compress/gzip"
 	"crypto/hmac"
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -14,6 +16,8 @@ import (
 	"strings"
 	"time"
 
+	rsaKeys "github.com/NStegura/metrics/utils/rsa"
+
 	"github.com/sirupsen/logrus"
 )
 
@@ -22,26 +26,38 @@ type Client struct {
 	client       *http.Client
 	logger       *logrus.Logger
 	URL          string
-	key          string
+	bodyHashKey  string
+	cryptoKey    *rsa.PublicKey
 	compressType string
 }
 
 func New(
 	addr string,
-	key string,
+	bodyHashKey string,
+	cryptoKeyPath string,
 	logger *logrus.Logger,
 ) (*Client, error) {
-	var err error
+	var (
+		cryptoKey *rsa.PublicKey
+		err       error
+	)
 	if !strings.HasPrefix(addr, "http") {
 		addr, err = url.JoinPath("http:", addr)
 		if err != nil {
 			return nil, fmt.Errorf("failed to init client, %w", err)
 		}
 	}
+	if cryptoKeyPath != "" {
+		cryptoKey, err = rsaKeys.ReadPublicKey(cryptoKeyPath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read public key: %w", err)
+		}
+	}
 	return &Client{
 		client:       &http.Client{},
 		URL:          addr,
-		key:          key,
+		bodyHashKey:  bodyHashKey,
+		cryptoKey:    cryptoKey,
 		logger:       logger,
 		compressType: "gzip",
 	}, nil
@@ -177,13 +193,20 @@ func (c *Client) post(
 ) (resp *http.Response, err error) {
 	headers := make(map[string]string)
 
-	if c.key != "" {
-		h := hmac.New(sha256.New, []byte(c.key))
+	if c.bodyHashKey != "" {
+		h := hmac.New(sha256.New, []byte(c.bodyHashKey))
 		_, err = h.Write(body)
 		if err != nil {
 			return nil, fmt.Errorf("failed to write body hash: %w", err)
 		}
 		headers["HashSHA256"] = hex.EncodeToString(h.Sum(nil))
+	}
+
+	if c.cryptoKey != nil {
+		body, err = rsaKeys.EncryptOAEP(sha256.New(), rand.Reader, c.cryptoKey, body, nil)
+		if err != nil {
+			return nil, fmt.Errorf("failed to encrypt key, %w", err)
+		}
 	}
 
 	if c.compressType == "gzip" {

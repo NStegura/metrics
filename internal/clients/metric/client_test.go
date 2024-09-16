@@ -5,6 +5,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/NStegura/metrics/config"
+
 	"github.com/golang/mock/gomock"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -30,13 +32,15 @@ func initTestHelper(t *testing.T) *testHelper {
 	r, err := repo.New(ctx, "", 100, "", false, l)
 	require.NoError(t, err)
 	businessLayer := business.New(r, l)
-	server := metricsapi.New(metricsapi.NewConfig(), businessLayer, l)
+	server, err := metricsapi.New(config.NewSrvConfig(), businessLayer, l)
+	require.NoError(t, err)
 	server.ConfigRouter()
 
 	ts := httptest.NewServer(server.Router)
 
 	metricsCli, err := New(
 		ts.URL,
+		"",
 		"",
 		l,
 	)

@@ -7,6 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/NStegura/metrics/config"
+
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 
@@ -23,7 +25,7 @@ func initBenchHelper() *benchHelper {
 	l := logrus.New()
 	r, _ := repo.New(ctx, "", 100, "", false, l)
 	businessLayer := business.New(r, l)
-	server := New(NewConfig(), businessLayer, l)
+	server, _ := New(config.NewSrvConfig(), businessLayer, l)
 	server.ConfigRouter()
 
 	ts := httptest.NewServer(server.Router)

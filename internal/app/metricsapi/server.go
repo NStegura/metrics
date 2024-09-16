@@ -2,12 +2,17 @@ package metricsapi
 
 import (
 	"context"
+	"crypto/rsa"
 	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	rsaKey "github.com/NStegura/metrics/utils/rsa"
+
+	"github.com/NStegura/metrics/config"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mailru/easyjson"
@@ -38,28 +43,40 @@ const (
 
 // APIServer хранит сущности для работы сервера.
 type APIServer struct {
-	config *Config
-	bll    Bll
-	Router *chi.Mux
+	cfg       *config.SrvConfig
+	cryptoKey *rsa.PrivateKey
+	bll       Bll
+	Router    *chi.Mux
 
 	logger *logrus.Logger
 }
 
-func New(config *Config, bll Bll, logger *logrus.Logger) *APIServer {
-	return &APIServer{
-		config: config,
-		bll:    bll,
-		Router: chi.NewRouter(),
-		logger: logger,
+func New(config *config.SrvConfig, bll Bll, logger *logrus.Logger) (*APIServer, error) {
+	var (
+		cryptoKey *rsa.PrivateKey
+		err       error
+	)
+	if config.PrivateCryptoKeyPath != "" {
+		cryptoKey, err = rsaKey.ReadPrivateKey(config.PrivateCryptoKeyPath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load private key: %w", err)
+		}
 	}
+	return &APIServer{
+		cfg:       config,
+		cryptoKey: cryptoKey,
+		bll:       bll,
+		Router:    chi.NewRouter(),
+		logger:    logger,
+	}, nil
 }
 
 // Start запускает сервер.
 func (s *APIServer) Start() error {
 	s.ConfigRouter()
 
-	s.logger.Infof("starting APIServer %s", s.config.BindAddr)
-	if err := http.ListenAndServe(s.config.BindAddr, s.Router); err != nil {
+	s.logger.Infof("starting APIServer %s", s.cfg.BindAddr)
+	if err := http.ListenAndServe(s.cfg.BindAddr, s.Router); err != nil {
 		return fmt.Errorf("failed to start server: %w", err)
 	}
 	return nil
@@ -68,6 +85,7 @@ func (s *APIServer) Start() error {
 func (s *APIServer) ConfigRouter() {
 	s.Router.Use(s.requestLogger)
 	s.Router.Use(s.gzipMiddleware)
+	s.Router.Use(s.decryptMiddleware)
 	s.Router.Use(s.hashValidation)
 
 	s.Router.Get(`/`, s.getAllMetrics())
@@ -85,7 +103,7 @@ func (s *APIServer) ConfigRouter() {
 
 	s.Router.Route(`/update`, func(r chi.Router) {
 		r.Post(`/`, s.updateMetric())
-		r.Post(`/{mType}/{mName}/{mValue}`, func(w http.ResponseWriter, r *http.Request) {
+		r.Post(`/{mType}/{mName}/{mValue}`, func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusBadRequest)
 		})
 		r.Route(`/gauge`, func(r chi.Router) {
@@ -138,6 +156,7 @@ func (s *APIServer) updateAllMetrics() http.HandlerFunc {
 		var metrics models.MetricsList
 
 		if err := easyjson.UnmarshalFromReader(r.Body, &metrics); err != nil {
+			s.logger.Error(err)
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
