@@ -1,8 +1,12 @@
 package agent
 
-import "github.com/NStegura/metrics/internal/clients/metric"
+import (
+	"context"
+
+	"github.com/NStegura/metrics/internal/clients/metric"
+)
 
 // MetricCli определяет интерфейс для работы с метриками.
 type MetricCli interface {
-	UpdateMetrics([]metric.Metrics) error
+	UpdateMetrics(context.Context, []metric.Metrics) error
 }

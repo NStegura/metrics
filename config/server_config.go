@@ -16,6 +16,7 @@ const (
 type SrvConfig struct {
 	PrivateCryptoKeyPath string   `json:"crypto_key"`
 	BindAddr             string   `json:"address"`
+	GrpcAddr             string   `json:"grpc_address"`
 	LogLevel             string   `json:"log_level"`
 	FileStoragePath      string   `json:"store_file"`
 	DatabaseDSN          string   `json:"database_dsn"`
@@ -28,6 +29,7 @@ type SrvConfig struct {
 func NewSrvConfig() *SrvConfig {
 	return &SrvConfig{
 		BindAddr:        ":8080",
+		GrpcAddr:        ":50051",
 		LogLevel:        "debug",
 		FileStoragePath: "/tmp/metrics-db.json",
 		StoreInterval:   defaultStoreInerval,

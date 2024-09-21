@@ -1,4 +1,4 @@
-package metricsapi
+package httpserver
 
 import (
 	"bytes"

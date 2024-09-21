@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
+
+	"github.com/NStegura/metrics/internal/clients/base"
 
 	"github.com/NStegura/metrics/config"
 
@@ -41,11 +44,12 @@ func startAgent() error {
 	if err != nil {
 		return fmt.Errorf("failed to configure logger: %w", err)
 	}
-	metricsCli, err := metric.New(
-		cfg.HTTPAddr,
-		cfg.BodyHashKey,
-		cfg.PublicCryptoKeyPath,
-		logger,
+	metricsCli, err := metric.NewGRPCClient(cfg.HTTPAddr,
+		base.WithLogger(logger),
+		base.WithRetryPolicy(
+			[]time.Duration{1 * time.Second, 2 * time.Second, 5 * time.Second},
+			base.IsRetryableGRPCRequest,
+		),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to init metric client: %w", err)

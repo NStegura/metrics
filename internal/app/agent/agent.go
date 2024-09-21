@@ -181,7 +181,7 @@ func (ag *Agent) sendMetrics(ctx context.Context, workerID int, wg *sync.WaitGro
 				ag.logger.Infof("send metrics worker %v stop by ctx", workerID)
 				return
 			case metrics := <-metricsCh:
-				err := ag.metricsCli.UpdateMetrics(metric.CastToMetrics(metrics))
+				err := ag.metricsCli.UpdateMetrics(ctx, metric.CastToMetrics(metrics))
 				if err != nil {
 					ag.logger.Error(err)
 				}
