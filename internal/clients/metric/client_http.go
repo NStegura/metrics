@@ -63,8 +63,9 @@ func NewRequestError(response *http.Response) error {
 
 // UpdateGaugeMetric обновляет gauge метрику.
 func (c *Client) UpdateGaugeMetric(name string, value float64) error {
-	resp, err := c.post(
+	resp, err := c.do(
 		fmt.Sprintf("%s/update/gauge/%s/%v", c.URL, name, value),
+		http.MethodPost,
 		"text/plain",
 		nil,
 	)
@@ -86,8 +87,9 @@ func (c *Client) UpdateGaugeMetric(name string, value float64) error {
 
 // UpdateCounterMetric обновляет counter метрику.
 func (c *Client) UpdateCounterMetric(name string, value int64) error {
-	resp, err := c.post(
+	resp, err := c.do(
 		fmt.Sprintf("%s/update/counter/%s/%v", c.URL, name, value),
+		http.MethodPost,
 		"text/plain",
 		nil,
 	)
@@ -109,8 +111,9 @@ func (c *Client) UpdateCounterMetric(name string, value int64) error {
 
 // UpdateMetric обновляет метрику.
 func (c *Client) UpdateMetric(jsonBody []byte) error {
-	resp, err := c.post(
+	resp, err := c.do(
 		fmt.Sprintf("%s/update/", c.URL),
+		http.MethodPost,
 		"application/json",
 		jsonBody,
 	)
@@ -142,8 +145,9 @@ func (c *Client) UpdateMetrics(_ context.Context, metrics []Metrics) error {
 		return fmt.Errorf("failed to decode metrics, err %w", err)
 	}
 
-	resp, err := c.post(
+	resp, err := c.do(
 		fmt.Sprintf("%s/updates/", c.URL),
+		http.MethodPost,
 		"application/json",
 		jsonBody,
 	)
@@ -163,8 +167,9 @@ func (c *Client) UpdateMetrics(_ context.Context, metrics []Metrics) error {
 	return nil
 }
 
-func (c *Client) post(
+func (c *Client) do(
 	url string,
+	method string, //nolint:unparam // потом не только post
 	contentType string,
 	body []byte,
 ) (resp *http.Response, err error) {
@@ -174,7 +179,7 @@ func (c *Client) post(
 	}
 
 	bodyReader := bytes.NewReader(body)
-	req, err := http.NewRequest(http.MethodPost, url, bodyReader)
+	req, err := http.NewRequest(method, url, bodyReader)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
