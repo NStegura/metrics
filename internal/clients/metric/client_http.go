@@ -186,7 +186,7 @@ func (c *Client) post(
 
 	execute, err := c.Execute(
 		func() (any, error) {
-			return c.client.Do(req) //nolint:bodyclose,wrapcheck // закрытия тела происходит в другом месте
+			return c.client.Do(req) //nolint // закрытие тела происходит в другом месте
 		},
 		req.URL.Path,
 		req.Method,
