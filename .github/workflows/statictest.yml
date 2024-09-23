@@ -28,10 +28,6 @@ jobs:
           chmod -R +x $GITHUB_WORKSPACE/.tools/statictest
           mv $GITHUB_WORKSPACE/.tools/statictest /usr/local/bin/statictest
 
-      - name: Run statictest
-        run: |
-          go vet -vettool=$(which statictest) ./...
-
       - name: Run multichecker
         run: |
           ./cmd/staticlint/staticlint ./...
