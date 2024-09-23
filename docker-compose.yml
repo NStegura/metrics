@@ -9,6 +9,7 @@ services:
     ports:
       - '8082:8082'
       - '8081:8081'
+      - '50051:50051'
     working_dir: "$PWD"
     depends_on:
       - metrics-postgres
@@ -16,6 +17,7 @@ services:
       - metrics-postgres
     environment:
       ADDRESS: ':8082'
+      GRPC_ADDRESS: ':50051'
       LOG_LEVEL: 'debug'
       FILE_STORAGE_PATH: '/tmp/metrics-db.json'
       CRYPTO_KEY: 'tmp/private_key.pem'
@@ -40,6 +42,7 @@ services:
       - metrics-api
     environment:
       ADDRESS: 'metrics-api:8082'
+      GRPC_ADDRESS: 'metrics-api:50051'
       KEY: 'some key'
       CRYPTO_KEY: 'tmp/public_key.pem'
       REPORT_INTERVAL: '10'

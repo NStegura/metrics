@@ -37,7 +37,7 @@ func (s *MetricsGRPCServer) Start(opts ...grpc.ServerOption) error {
 	s.logger.Infof("starting GRPCServer %s", s.cfg.GrpcAddr)
 	lis, err := net.Listen("tcp", s.cfg.GrpcAddr)
 	defer func() {
-		if err := lis.Close(); err != nil {
+		if err = lis.Close(); err != nil {
 			s.logger.Error("failed to close listener")
 		}
 	}()
@@ -56,9 +56,6 @@ func (s *MetricsGRPCServer) UpdateAllMetrics(ctx context.Context, req *pb.Metric
 	for _, metric := range req.Metrics {
 		switch metric.Mtype {
 		case pb.MetricType_GAUGE:
-			if metric.Value == 0 {
-				return nil, status.Errorf(codes.InvalidArgument, "gauge metric value null")
-			}
 			err := s.bll.UpdateGaugeMetric(ctx, blModels.GaugeMetric{
 				Name:  metric.Id,
 				Type:  "gauge",
@@ -68,9 +65,6 @@ func (s *MetricsGRPCServer) UpdateAllMetrics(ctx context.Context, req *pb.Metric
 				return nil, status.Errorf(codes.Internal, "failed to update gauge metric")
 			}
 		case pb.MetricType_COUNTER:
-			if metric.Delta == 0 {
-				return nil, status.Errorf(codes.InvalidArgument, "counter metric value null")
-			}
 			err := s.bll.UpdateCounterMetric(ctx, blModels.CounterMetric{
 				Name:  metric.Id,
 				Type:  "counter",

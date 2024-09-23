@@ -16,13 +16,14 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+//nolint:govet // unexpected?
 type BaseClient struct {
-	Logger       *logrus.Logger
 	BodyHashKey  string
 	CompressType string
-	CryptoKey    *rsa.PublicKey
 	retryPolicy  []time.Duration
 	isRetryable  func(result any, err error) bool
+	CryptoKey    *rsa.PublicKey
+	Logger       *logrus.Logger
 }
 
 func NewBaseClient(options ...Option) (*BaseClient, error) {

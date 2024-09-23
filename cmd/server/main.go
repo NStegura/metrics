@@ -109,10 +109,7 @@ func runRest() error {
 		return fmt.Errorf("failed to init grpc server: %w", err)
 	}
 	go func(errs chan<- error) {
-		if err = newGrpcServer.Start(
-			grpc.MaxRecvMsgSize(2048*2048*100),
-			grpc.MaxSendMsgSize(2048*2048*100),
-		); err != nil {
+		if err = newGrpcServer.Start(); err != nil {
 			if errors.Is(err, grpc.ErrServerStopped) {
 				return
 			}

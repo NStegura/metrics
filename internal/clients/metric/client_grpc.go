@@ -3,14 +3,15 @@ package metric
 import (
 	"context"
 	"fmt"
+	"time"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
+
 	"github.com/NStegura/metrics/internal/clients/base"
 	"github.com/NStegura/metrics/pkg/api"
 	"github.com/NStegura/metrics/utils/ip"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/encoding/gzip"
-	"google.golang.org/grpc/metadata"
-	"time"
 )
 
 type GRPCClient struct {
@@ -22,11 +23,6 @@ type GRPCClient struct {
 func NewGRPCClient(addr string, options ...base.Option) (*GRPCClient, error) {
 	conn, err := grpc.NewClient(addr,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithDefaultCallOptions(
-			grpc.MaxCallSendMsgSize(1024*1024*100),
-			grpc.MaxCallRecvMsgSize(1024*1024*100),
-			grpc.UseCompressor(gzip.Name),
-		),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to gRPC server: %w", err)
@@ -54,7 +50,7 @@ func (c *GRPCClient) UpdateMetrics(ctx context.Context, metrics []Metrics) error
 	}
 	_, err = c.Execute(
 		func() (any, error) {
-			return c.client.UpdateAllMetrics(ctx, &api.MetricsList{Metrics: ml})
+			return c.client.UpdateAllMetrics(ctx, &api.MetricsList{Metrics: ml}) //nolint:wrapcheck // proxy
 		},
 		c.conn.Target(),
 		"grpc",

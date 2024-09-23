@@ -2,11 +2,12 @@ package metric
 
 import (
 	"context"
-	"github.com/NStegura/metrics/internal/app/metricsapi/httpserver"
-	"github.com/NStegura/metrics/internal/clients/base"
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/NStegura/metrics/internal/app/metricsapi/httpserver"
+	"github.com/NStegura/metrics/internal/clients/base"
 
 	"github.com/NStegura/metrics/config"
 

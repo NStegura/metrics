@@ -168,7 +168,6 @@ func (c *Client) post(
 	contentType string,
 	body []byte,
 ) (resp *http.Response, err error) {
-
 	body, headers, err := c.prepareRequest(contentType, body)
 	if err != nil {
 		return nil, err
@@ -187,7 +186,7 @@ func (c *Client) post(
 
 	execute, err := c.Execute(
 		func() (any, error) {
-			return c.client.Do(req)
+			return c.client.Do(req) //nolint:bodyclose,wrapcheck // закрытия тела происходит в другом месте
 		},
 		req.URL.Path,
 		req.Method,
@@ -195,7 +194,10 @@ func (c *Client) post(
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
-	resp = execute.(*http.Response)
+	resp, ok := execute.(*http.Response)
+	if !ok {
+		return nil, fmt.Errorf("failed to check type resp: %v", execute)
+	}
 	return resp, nil
 }
 
@@ -215,21 +217,21 @@ func (c *Client) prepareRequest(
 
 	if hash, included, err = c.GenerateHMAC(body); included {
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, fmt.Errorf("failed to GenerateHMAC: %w", err)
 		}
 		headers["HashSHA256"] = hash
 	}
 
 	if encryptedBody, included, err = c.Encrypt(body); included {
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, fmt.Errorf("failed to Encrypt: %w", err)
 		}
 		body = encryptedBody
 	}
 
 	if body, included, err = c.Compress(body); included {
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, fmt.Errorf("failed to Compress: %w", err)
 		}
 		headers["Accept-Encoding"] = c.CompressType
 		headers["Content-Encoding"] = c.CompressType

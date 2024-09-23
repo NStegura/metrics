@@ -15,7 +15,7 @@ import (
 
 type Option func(*BaseClient) error
 
-// WithLogger Опция для настройки логгера
+// WithLogger Опция для настройки логгера.
 func WithLogger(logger *logrus.Logger) Option {
 	return func(c *BaseClient) error {
 		c.Logger = logger
@@ -23,7 +23,7 @@ func WithLogger(logger *logrus.Logger) Option {
 	}
 }
 
-// WithRetryPolicy Опция для настройки политики ретраев
+// WithRetryPolicy Опция для настройки политики ретраев.
 func WithRetryPolicy(
 	backoffs []time.Duration,
 	isRetryable func(result any, err error) bool,
@@ -35,7 +35,7 @@ func WithRetryPolicy(
 	}
 }
 
-// WithBodyHashKey Опция для настройки ключа хэширования тела
+// WithBodyHashKey Опция для настройки ключа хэширования тела.
 func WithBodyHashKey(key string) Option {
 	return func(c *BaseClient) error {
 		c.BodyHashKey = key
@@ -43,7 +43,7 @@ func WithBodyHashKey(key string) Option {
 	}
 }
 
-// WithCryptoKey Опция для настройки ключа хэширования тела
+// WithCryptoKey Опция для настройки ключа хэширования тела.
 func WithCryptoKey(key string) Option {
 	return func(c *BaseClient) error {
 		var (
@@ -65,7 +65,7 @@ func WithCryptoKey(key string) Option {
 	}
 }
 
-// WithCompressType Опция для настройки ключа хэширования тела
+// WithCompressType Опция для настройки типа сжатия.
 func WithCompressType(compressType string) Option {
 	return func(c *BaseClient) error {
 		c.CompressType = compressType
@@ -73,15 +73,19 @@ func WithCompressType(compressType string) Option {
 	}
 }
 
-func IsRetryableHTTPRequest(result any, err error) bool {
-	resp := result.(*http.Response)
+func IsRetryableHTTPRequest(result any, _ error) bool {
+	resp, ok := result.(*http.Response)
+	if !ok {
+		logrus.Errorf("failed to check type for %v", result)
+		return false
+	}
 	if resp.StatusCode >= http.StatusInternalServerError {
 		return true
 	}
 	return false
 }
 
-func IsRetryableGRPCRequest(result any, err error) bool {
+func IsRetryableGRPCRequest(_ any, err error) bool {
 	if e, ok := status.FromError(err); ok {
 		if e.Code() == codes.Internal || e.Code() == codes.Unavailable {
 			return true
