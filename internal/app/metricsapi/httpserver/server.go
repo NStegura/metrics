@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	rsaKey "github.com/NStegura/metrics/utils/rsa"
+	rsaKey "github.com/NStegura/metrics/internal/utils/rsa"
 
 	"github.com/NStegura/metrics/config"
 

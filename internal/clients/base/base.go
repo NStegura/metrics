@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"time"
 
-	rsaKeys "github.com/NStegura/metrics/utils/rsa"
+	rsaKeys "github.com/NStegura/metrics/internal/utils/rsa"
 
 	"github.com/sirupsen/logrus"
 )

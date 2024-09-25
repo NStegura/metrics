@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/NStegura/metrics/internal/utils/ip"
+
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
 
 	"github.com/NStegura/metrics/internal/clients/base"
 	"github.com/NStegura/metrics/pkg/api"
-	"github.com/NStegura/metrics/utils/ip"
 )
 
 type GRPCClient struct {

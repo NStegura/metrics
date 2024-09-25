@@ -6,11 +6,11 @@ import (
 	"net/http"
 	"time"
 
+	rsaKeys "github.com/NStegura/metrics/internal/utils/rsa"
+
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-
-	rsaKeys "github.com/NStegura/metrics/utils/rsa"
 )
 
 type Option func(*BaseClient) error

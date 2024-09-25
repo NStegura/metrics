@@ -10,8 +10,9 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/NStegura/metrics/internal/utils/ip"
+
 	"github.com/NStegura/metrics/internal/clients/base"
-	"github.com/NStegura/metrics/utils/ip"
 )
 
 // Client - клиент к хранению метрик.
