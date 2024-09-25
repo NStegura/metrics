@@ -12,10 +12,14 @@ import (
 	"syscall"
 	"time"
 
+	"google.golang.org/grpc"
+
+	"github.com/NStegura/metrics/internal/app/metricsapi/grpcserver"
+	"github.com/NStegura/metrics/internal/app/metricsapi/httpserver"
+
 	"github.com/sirupsen/logrus"
 
 	"github.com/NStegura/metrics/config"
-	"github.com/NStegura/metrics/internal/app/metricsapi"
 	"github.com/NStegura/metrics/internal/business"
 	"github.com/NStegura/metrics/internal/monitoring/pprof"
 	"github.com/NStegura/metrics/internal/repo"
@@ -85,20 +89,31 @@ func runRest() error {
 
 	componentsErrs := make(chan error, 1)
 
-	newServer, err := metricsapi.New(
-		cfg,
-		business.New(db, logger),
-		logger,
-	)
+	b := business.New(db, logger)
+
+	newServer, err := httpserver.New(cfg, b, logger)
 	if err != nil {
-		return fmt.Errorf("failed to init server: %w", err)
+		return fmt.Errorf("failed to init http server: %w", err)
 	}
 	go func(errs chan<- error) {
 		if err = newServer.Start(); err != nil {
 			if errors.Is(err, http.ErrServerClosed) {
 				return
 			}
-			errs <- fmt.Errorf("listen and server has failed: %w", err)
+			errs <- fmt.Errorf("listen and serve http has failed: %w", err)
+		}
+	}(componentsErrs)
+
+	newGrpcServer, err := grpcserver.New(cfg, b, logger)
+	if err != nil {
+		return fmt.Errorf("failed to init grpc server: %w", err)
+	}
+	go func(errs chan<- error) {
+		if err = newGrpcServer.Start(); err != nil {
+			if errors.Is(err, grpc.ErrServerStopped) {
+				return
+			}
+			errs <- fmt.Errorf("listen and serve grpc has failed: %w", err)
 		}
 	}(componentsErrs)
 

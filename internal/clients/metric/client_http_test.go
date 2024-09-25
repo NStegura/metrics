@@ -4,6 +4,10 @@ import (
 	"context"
 	"net/http/httptest"
 	"testing"
+	"time"
+
+	"github.com/NStegura/metrics/internal/app/metricsapi/httpserver"
+	"github.com/NStegura/metrics/internal/clients/base"
 
 	"github.com/NStegura/metrics/config"
 
@@ -13,7 +17,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/NStegura/metrics/internal/app/agent/models"
-	"github.com/NStegura/metrics/internal/app/metricsapi"
 	"github.com/NStegura/metrics/internal/business"
 	"github.com/NStegura/metrics/internal/repo"
 )
@@ -32,17 +35,21 @@ func initTestHelper(t *testing.T) *testHelper {
 	r, err := repo.New(ctx, "", 100, "", false, l)
 	require.NoError(t, err)
 	businessLayer := business.New(r, l)
-	server, err := metricsapi.New(config.NewSrvConfig(), businessLayer, l)
+	server, err := httpserver.New(config.NewSrvConfig(), businessLayer, l)
 	require.NoError(t, err)
 	server.ConfigRouter()
 
 	ts := httptest.NewServer(server.Router)
 
-	metricsCli, err := New(
-		ts.URL,
-		"",
-		"",
-		l,
+	metricsCli, err := NewHTTPClient(ts.URL,
+		base.WithLogger(l),
+		base.WithBodyHashKey(""),
+		base.WithCompressType("gzip"),
+		base.WithCryptoKey(""),
+		base.WithRetryPolicy(
+			[]time.Duration{1 * time.Second, 2 * time.Second, 5 * time.Second},
+			base.IsRetryableHTTPRequest,
+		),
 	)
 	require.NoError(t, err)
 	return &testHelper{
@@ -99,7 +106,7 @@ func TestUpdateMetrics(t *testing.T) {
 	}
 
 	for _, v := range tests {
-		err := th.cli.UpdateMetrics(v.metrics)
+		err := th.cli.UpdateMetrics(context.Background(), v.metrics)
 		require.NoError(t, err)
 	}
 }

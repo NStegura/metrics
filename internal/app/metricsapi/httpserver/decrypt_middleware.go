@@ -1,4 +1,4 @@
-package metricsapi
+package httpserver
 
 import (
 	"bytes"
@@ -7,7 +7,7 @@ import (
 	"io"
 	"net/http"
 
-	rsaKeys "github.com/NStegura/metrics/utils/rsa"
+	rsaKeys "github.com/NStegura/metrics/internal/utils/rsa"
 )
 
 func (s *APIServer) decryptMiddleware(h http.Handler) http.Handler {

@@ -11,7 +11,6 @@ type Metrics struct {
 
 func CastToMetrics(m models.Metrics) (metrics []Metrics) {
 	for _, metric := range m.CounterMetrics {
-		metric := metric
 		metrics = append(metrics, Metrics{
 			ID:    string(metric.Name),
 			MType: string(metric.Type),
@@ -19,7 +18,6 @@ func CastToMetrics(m models.Metrics) (metrics []Metrics) {
 		})
 	}
 	for _, metric := range m.GaugeMetrics {
-		metric := metric
 		metrics = append(metrics, Metrics{
 			ID:    string(metric.Name),
 			MType: string(metric.Type),

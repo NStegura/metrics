@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/NStegura/metrics/config"
-	"github.com/NStegura/metrics/internal/app/metricsapi"
+	"github.com/NStegura/metrics/internal/app/metricsapi/httpserver"
 	"github.com/NStegura/metrics/internal/business"
 	"github.com/NStegura/metrics/internal/repo"
 	"github.com/go-resty/resty/v2"
@@ -32,7 +32,7 @@ func startServer(l *logrus.Logger) {
 	businessLayer := business.New(r, l)
 	sConfig := config.NewSrvConfig()
 
-	server, err := metricsapi.New(sConfig, businessLayer, l)
+	server, err := httpserver.New(sConfig, businessLayer, l)
 	if err != nil {
 		l.Fatal(err)
 	}

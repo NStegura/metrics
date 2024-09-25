@@ -20,6 +20,7 @@ const (
 type AgentConfig struct {
 	PublicCryptoKeyPath string   `json:"crypto_key"`
 	HTTPAddr            string   `json:"address"`
+	GRPCAddr            string   `json:"grpc_addr"`
 	BodyHashKey         string   `json:"body_hash_key"`
 	LogLevel            string   `json:"log_level"`
 	RateLimit           int      `json:"rate_limit"`
@@ -56,7 +57,8 @@ func (c *AgentConfig) ParseFlags() (err error) {
 		}
 	}
 
-	flag.StringVar(&c.HTTPAddr, "a", "localhost:8080", "address and port to run server")
+	flag.StringVar(&c.HTTPAddr, "a", "localhost:8080", "address and port to run http server")
+	flag.StringVar(&c.GRPCAddr, "g", "localhost:50051", "address and port to run grpc server")
 	flag.IntVar(
 		&reportIntervalIn,
 		"r",
@@ -74,8 +76,11 @@ func (c *AgentConfig) ParseFlags() (err error) {
 	flag.IntVar(&c.RateLimit, "l", defaultRateLimit, "rate limit")
 	flag.Parse()
 
-	if envRunAddr, ok := os.LookupEnv("ADDRESS"); ok {
-		c.HTTPAddr = envRunAddr
+	if envRunHTTPAddr, ok := os.LookupEnv("ADDRESS"); ok {
+		c.HTTPAddr = envRunHTTPAddr
+	}
+	if envRunGrpcAddr, ok := os.LookupEnv("GRPC_ADDRESS"); ok {
+		c.GRPCAddr = envRunGrpcAddr
 	}
 	if report, ok := os.LookupEnv("REPORT_INTERVAL"); ok {
 		reportIntervalIn, err = strconv.Atoi(report)

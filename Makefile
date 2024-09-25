@@ -46,6 +46,9 @@ migrate:
 rollbackmigrations:
 	goose -dir=internal/repo/internal/db/migrations postgres "host=localhost port=54323 user=usr password=psswrd dbname=metrics sslmode=disable" reset
 
+.PHONY: protoc
+protoc:
+	protoc --proto_path=./api --go_out=pkg/api --go_opt=paths=source_relative --go-grpc_out=pkg/api --go-grpc_opt=paths=source_relative api/metricsapi.proto
 
 ## TESTS
 

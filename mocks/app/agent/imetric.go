@@ -5,6 +5,7 @@
 package mock_agent
 
 import (
+	context "context"
 	reflect "reflect"
 
 	metric "github.com/NStegura/metrics/internal/clients/metric"
@@ -35,15 +36,15 @@ func (m *MockMetricCli) EXPECT() *MockMetricCliMockRecorder {
 }
 
 // UpdateMetrics mocks base method.
-func (m *MockMetricCli) UpdateMetrics(arg0 []metric.Metrics) error {
+func (m *MockMetricCli) UpdateMetrics(arg0 context.Context, arg1 []metric.Metrics) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateMetrics", arg0)
+	ret := m.ctrl.Call(m, "UpdateMetrics", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // UpdateMetrics indicates an expected call of UpdateMetrics.
-func (mr *MockMetricCliMockRecorder) UpdateMetrics(arg0 interface{}) *gomock.Call {
+func (mr *MockMetricCliMockRecorder) UpdateMetrics(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateMetrics", reflect.TypeOf((*MockMetricCli)(nil).UpdateMetrics), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateMetrics", reflect.TypeOf((*MockMetricCli)(nil).UpdateMetrics), arg0, arg1)
 }

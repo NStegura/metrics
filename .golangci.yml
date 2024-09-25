@@ -1,6 +1,6 @@
 # Options for analysis running.
 run:
-  go: "1.23"
+  go: "1.22"
   # Settable parameters #
   timeout: 5m
   tests: true
@@ -252,8 +252,6 @@ linters-settings:
       - name: dot-imports
       - name: identical-branches
       - name: increment-decrement
-      - name: range-val-in-closure
-      - name: range-val-address
       - name: unconditional-recursion
       - name: unnecessary-stmt
       - name: unreachable-code

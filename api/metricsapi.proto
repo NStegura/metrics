@@ -1,0 +1,36 @@
+syntax = "proto3";
+package metricsapi;
+option go_package = "github.com/NStegura/metrics/api";
+
+import "google/protobuf/empty.proto";
+
+
+
+service MetricsApi {
+  rpc UpdateAllMetrics(MetricsList) returns (UpdateResponse){};
+  rpc GetPing(google.protobuf.Empty) returns (Pong) {}
+}
+
+message MetricsList {
+  repeated Metric metrics = 1;
+}
+
+message Metric {
+  string id = 1;
+  MetricType mtype = 2;
+  double value = 3;
+  int64 delta = 4;
+}
+
+enum MetricType {
+  GAUGE = 0;
+  COUNTER = 1;
+}
+
+message UpdateResponse {
+  string message = 1;
+}
+
+message Pong {
+  bool pong = 1;
+}
